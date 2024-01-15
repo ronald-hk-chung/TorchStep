@@ -35,7 +35,7 @@ def collect_images(keywords: str,
   for result in tqdm(results):
     try:
       img = Image.open(requests.get(result['image'], stream=True, timeout=timeout).raw).convert('RGB')
-      if np.array(img).shape[2] != 3:
+      if np.array(img).shape[2] == 3:
         image_name = uuid.uuid5(namespace=uuid.NAMESPACE_URL, name=result['image'])
         img.save(f'{path}/{image_name}.jpg')
         image_result = {'image': result['image'],
