@@ -16,7 +16,7 @@ class SelectiveSearch:
   """
   __slot__ = ['regions']
   def __init__(self,
-               img: PIL.Image.Image,
+               img: Image.Image,
                scale: float = 1.0,
                sigma: float = 0.8,
                min_size: float = 100):

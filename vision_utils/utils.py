@@ -6,11 +6,12 @@ from torch.utils.data import DataLoader
 from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from typing import Callable
 
 
 def show_batch(dataloader: torch.utils.data.DataLoader,
-               transforms: transforms.Compose = T.ToPILImage(),
-               labelling: Callable):
+               labelling: Callable,
+               transforms: transforms.Compose = T.ToPILImage()):
   """Function to show a batch of images with custom labelling
   
   Args:
