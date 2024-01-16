@@ -7,6 +7,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
 from typing import Callable
+import numpy as np
 
 def get_cam(img_path: str,
             tfms: transforms.Compose,
