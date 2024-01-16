@@ -6,6 +6,7 @@ from torchvision.transforms import v2 as T
 from PIL import Image
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
+from typing import Callable
 
 def get_cam(img_path: str,
             tfms: transforms.Compose,
