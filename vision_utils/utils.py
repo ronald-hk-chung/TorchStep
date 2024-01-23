@@ -7,6 +7,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from typing import Callable
+import numpy as np
 
 
 def show_batch(dataloader: torch.utils.data.DataLoader,
