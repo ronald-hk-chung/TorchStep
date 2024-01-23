@@ -194,7 +194,9 @@ class SelectiveSearch:
                       'labels': r['labels']})
     return regions
   
-  def search(self, size_thresold: float = 0.05):
+  def search(self, 
+             size_thresold: float = 0.05, 
+             format: str = 'XYWH'):
     """Method to perform selective search
     
     Args:
@@ -209,5 +211,9 @@ class SelectiveSearch:
       if r['size'] < (size_thresold * self.imsize): continue
       if r['size'] > self.imsize: continue
       candidates.append(list(r['rect']))
+      if format=='XYXY':
+        candidates = [(x, y, x+w, y+h) for x, y, w, h in candidates]
+      elif format=='CXCYWH':
+        candidates = [(x+w/2, y+h/2, w, h) for x, y, w, h in candidates]
     return candidates
 

@@ -349,6 +349,7 @@ class TSEngine:
 
   def predict(self, X: torch.Tensor):
     """Method for TSEngine to predict in inference_mode"""
+    X = X.to(self.device)
     self.model.eval()
     with torch.inference_mode():
       y_logits = self.model(X)
