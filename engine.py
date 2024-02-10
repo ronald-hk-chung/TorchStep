@@ -347,9 +347,9 @@ class TSEngine:
     """
     self.optimizer = optim[0](params=self.model.parameters(), **optim[1])
 
-  def predict(self, X: torch.Tensor):
+  def predict(self, X):
     """Method for TSEngine to predict in inference_mode"""
-    X = X.to(self.device)
+    X = X.to(self.device) if torch.is_tensor(X) else [item.to(self.device) for item in X]
     self.model.eval()
     with torch.inference_mode():
       y_logits = self.model(X)
