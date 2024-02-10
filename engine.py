@@ -105,7 +105,7 @@ class TSEngine:
     self.callback_handler.on_epoch_begin(self)
     train_loss, train_metric = 0, 0
     for batch, (X, *y) in enumerate(self.train_dataloader):
-      X = X.to(self.device)
+      X = X.to(self.device) if torch.is_tensor(X) else [item.to(self.device) for item in X]
       y = y[0].to(self.device) if len(y)==1 else [item.to(self.device) for item in y]
       self.callback_handler.on_batch_begin(self)
       y_logits = self.model(X)
@@ -128,7 +128,7 @@ class TSEngine:
     valid_loss, valid_metric = 0, 0
     with torch.inference_mode():
       for batch, (X, *y) in enumerate(self.valid_dataloader):
-        X = X.to(self.device)
+        X = X.to(self.device) if torch.is_tensor(X) else [item.to(self.device) for item in X]
         y = y[0].to(self.device) if len(y)==1 else [item.to(self.device) for item in y]
         y_logits = self.model(X)
         loss = self.loss_fn(y_logits, y)
