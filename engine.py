@@ -361,18 +361,19 @@ class TSEngine:
 
   def predict(self, X):
     """Method for TSEngine to predict in inference_mode"""
-    X = X.to(self.device) if torch.is_tensor(X) else [item.to(self.device) for item in X]
+    X = self.to_device(X)
     self.model.eval()
     with torch.inference_mode():
-      y_logits = self.model(X)
+      y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
     self.model.train()
     return y_logits
 
   def add_graph(self):
     """Method to add graph for TensorBoard"""
     if self.train_dataloader and self.writer:
-      X, y = next(iter(self.train_dataloader))
-      self.writer.add_graph(self.model, X.to(self.device))
+      X, *y = next(iter(self.train_dataloader))
+      X = self.to_device(X)
+      self.writer.add_graph(self.model, X)
 
   def plot_loss_curve(self):
     """Method to plot loss curve"""
@@ -559,7 +560,7 @@ class TSEngine:
                                 tag_scalar_dict=loss_scalars,
                                 global_step=self.total_epochs)
 
-        for i, train_acc in enumerate(kwargs["train_metric"]):
+        for i, train_metric in enumerate(kwargs["train_metric"]):
           acc_scalars = {"train_metric": kwargs["train_metric"][i],
                          "valid_metric": kwargs["valid_metric"][i]}
           self.writer.add_scalars(main_tag=f"metric_{i}",
