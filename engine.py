@@ -104,7 +104,7 @@ class TSEngine:
     self.model.train()
     self.callback_handler.on_epoch_begin(self)
     train_loss, train_metric = 0, 0
-    for batch, (X, *y) in enumerate(tqdm(self.train_dataloader)):
+    for batch, (X, *y) in enumerate(tqdm(self.train_dataloader, leave=True, desc='Train Step')):
       X = self.to_device(X)
       y = self.to_device(y)
       self.callback_handler.on_batch_begin(self)
@@ -127,7 +127,7 @@ class TSEngine:
     self.model.eval()
     valid_loss, valid_metric = 0, 0
     with torch.inference_mode():
-      for batch, (X, *y) in enumerate(tqdm(self.valid_dataloader)):
+      for batch, (X, *y) in enumerate(tqdm(self.valid_dataloader, leave=True, desc='Valid Step')):
         X = self.to_device(X)
         y = self.to_device(y)
         y_logits = self.model(X)
@@ -144,7 +144,7 @@ class TSEngine:
     Args: epochs [int]: num of epochs to run
     """
     self.callback_handler.on_train_begin(self)
-    for epoch in tqdm(range(epochs)):
+    for epoch in tqdm(range(epochs), desc='Epochs'):
       self.total_epochs += 1
       train_loss, train_metric = self.train_step()
       valid_loss, valid_metric = self.valid_step()
