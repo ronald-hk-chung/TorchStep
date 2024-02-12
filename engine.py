@@ -220,9 +220,9 @@ class TSEngine:
     iteration = 0
     while iteration < num_iter:
       for X, *y in self.train_dataloader:
-        X = X.to(self.device)
-        y = y[0].to(self.device) if len(y)==1 else [item.to(self.device) for item in y]
-        y_logits = self.model(X)
+        X = self.to_device(X)
+        y = self.to_device(y)
+        y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
         loss = self.loss_fn(y_logits, y)
         self.optimizer.zero_grad()
         loss.backward()
