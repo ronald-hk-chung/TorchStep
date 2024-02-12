@@ -292,7 +292,6 @@ class TSEngine:
     self.is_batch_lr_scheduler = is_batch_lr_scheduler
 
   def model_info(self,
-                 input_data: Any = None,
                  col_names: list[str] = ["input_size", "output_size", "num_params", "trainable"],
                  col_width: int = 20,
                  row_settings: list[str] = ["var_names"]):
@@ -312,21 +311,14 @@ class TSEngine:
 
       col_width (int): Width of each column. Default: 20
     """
-    if input_data is None:
-      input_size = next(iter(self.train_dataloader))[0].shape
-      print(torchinfo.summary(model=self.model,
-                              input_size=input_size,
-                              verbose=0,
-                              col_names=col_names,
-                              col_width=col_width,
-                              row_settings=row_settings))
-    else:
-      print(torchinfo.summary(model=self.model,
-                              input_data=input_data,
-                              verbose=0,
-                              col_names=col_names,
-                              col_width=col_width,
-                              row_settings=row_settings))
+    X, *y = next(iter(self.train_dataloader))
+    X = self.to_device(X)
+    print(torchinfo.summary(model=self.model,
+                            input_data=list(X),
+                            verbose=0,
+                            col_names=col_names,
+                            col_width=col_width,
+                            row_settings=row_settings))
 
 
 
