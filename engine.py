@@ -314,16 +314,21 @@ class TSEngine:
     """
     if input_data is None:
       input_size = next(iter(self.train_dataloader))[0].shape
+      print(torchinfo.summary(model=self.model,
+                              input_size=input_size,
+                              verbose=0,
+                              col_names=col_names,
+                              col_width=col_width,
+                              row_settings=row_settings))
     else:
-      input_size = None
+      print(torchinfo.summary(model=self.model,
+                              input_data=input_data,
+                              verbose=0,
+                              col_names=col_names,
+                              col_width=col_width,
+                              row_settings=row_settings))
 
-    print(torchinfo.summary(model=self.model,
-                            input_size=input_size,
-                            input_data=input_data,
-                            verbose=0,
-                            col_names=col_names,
-                            col_width=col_width,
-                            row_settings=row_settings))
+
 
   def freeze(self, layers: list[str] = None):
     """Method to change requires_grad to False for layers
