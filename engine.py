@@ -104,9 +104,9 @@ class TSEngine:
     self.model.train()
     self.callback_handler.on_epoch_begin(self)
     train_loss, train_metric = 0, 0
-    for batch, (X, *y) in enumerate(self.train_dataloader):
-      X = X.to(self.device) if torch.is_tensor(X) else [item.to(self.device) for item in X]
-      y = y[0].to(self.device) if len(y)==1 else [item.to(self.device) for item in y]
+    for batch, (X, *y) in enumerate(tqdm(self.train_dataloader)):
+      X = self.to_device(X)
+      y = self.to_device(y)
       self.callback_handler.on_batch_begin(self)
       y_logits = self.model(X)
       loss = self.loss_fn(y_logits, y)
@@ -127,9 +127,9 @@ class TSEngine:
     self.model.eval()
     valid_loss, valid_metric = 0, 0
     with torch.inference_mode():
-      for batch, (X, *y) in enumerate(self.valid_dataloader):
-        X = X.to(self.device) if torch.is_tensor(X) else [item.to(self.device) for item in X]
-        y = y[0].to(self.device) if len(y)==1 else [item.to(self.device) for item in y]
+      for batch, (X, *y) in enumerate(tqdm(self.valid_dataloader)):
+        X = self.to_device(X)
+        y = self.to_device(y)
         y_logits = self.model(X)
         loss = self.loss_fn(y_logits, y)
         valid_loss += np.array(loss.item())
@@ -153,6 +153,14 @@ class TSEngine:
                                          train_metric=train_metric if isinstance(train_metric, np.ndarray) else [train_metric],
                                          valid_loss=valid_loss,
                                          valid_metric=valid_metric if isinstance(valid_metric, np.ndarray) else [valid_metric])
+
+  def to_device(self, 
+                X: Any):
+    """Method to put variable X to gpu device if available"""
+    if torch.is_tensor(X):
+      return X.to(self.device)
+    else:
+      return X[0].to(self.device) if len(X)==1 else [x.to(self.device) for x in X]
 
   @staticmethod
   def make_lr_fn(start_lr: float,
