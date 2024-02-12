@@ -108,7 +108,7 @@ class TSEngine:
       X = self.to_device(X)
       y = self.to_device(y)
       self.callback_handler.on_batch_begin(self)
-      y_logits = self.model(X)
+      y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
       loss = self.loss_fn(y_logits, y)
       self.callback_handler.on_loss_end(self)
       train_loss += np.array(loss.item())
@@ -130,7 +130,7 @@ class TSEngine:
       for batch, (X, *y) in enumerate(tqdm(self.valid_dataloader, leave=False, desc='Valid Step')):
         X = self.to_device(X)
         y = self.to_device(y)
-        y_logits = self.model(X)
+        y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
         loss = self.loss_fn(y_logits, y)
         valid_loss += np.array(loss.item())
         valid_metric += np.array(self.metric_fn(y_logits, y))
