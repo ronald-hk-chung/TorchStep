@@ -556,10 +556,10 @@ class TSEngine:
         f"Epoch: {self.total_epochs} "
         + f"| LR: {np.array(self.learning_rates).mean():.1E} "
         + f"| train_loss: {np.around(kwargs['train_loss'], 3)} "
-        + f"| valid_loss: {np.around(kwargs['valid_loss'], 3)} " if self.valid_dataloader else ""
-        + f"| train_metric: {np.around(kwargs['train_metric'], 3)} " if self.metric_fn else ""
-        + f"| valid_metric: {np.around(kwargs['valid_metric'], 3)} " if self.metric_fn else ""
-      )
+        + f"| valid_loss: {np.around(kwargs['valid_loss'], 3)} " if self.valid_dataloader else "")
+      if self.metric_fn:
+        print(f"train_metric: {np.around(kwargs['train_metric'], 3)} "
+               + f"| valid_metric: {np.around(kwargs['valid_metric'], 3)} " if self.valid_dataloader else "")
       self.learning_rates = []
 
   class TBWriter(Callback):
