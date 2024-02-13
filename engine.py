@@ -115,8 +115,8 @@ class TSEngine:
       train_loss += np.array(loss.item())
       if self.metric_fn:
         if isinstance(metric:=self.metric_fn(y_logits, y), dict):
-          metric = np.array(list(metric.values()))
           self.metric_keys = list(metric.keys())
+          metric = np.array(list(metric.values()))
         else:
           metric = np.array(metric)
         train_metric += metric
