@@ -35,9 +35,9 @@ class TSEngine:
                model: torch.nn.Module,
                optim: tuple[torch.optim.Optimizer, dict[str, float]],
                loss_fn: torch.nn.Module,
-               metric_fn: Callable,
-               train_dataloader: torch.utils.data.DataLoader,
-               valid_dataloader: torch.utils.data.DataLoader):
+               metric_fn: Callable = None,
+               train_dataloader: torch.utils.data.DataLoader = None,
+               valid_dataloader: torch.utils.data.DataLoader = None):
     self.model = deepcopy(model)
     self.optimizer = optim[0](params=self.model.parameters(), **optim[1])
     self.loss_fn = loss_fn
@@ -92,7 +92,7 @@ class TSEngine:
 
   def set_loaders(self,
                   train_dataloader: torch.utils.data.DataLoader,
-                  valid_dataloader: torch.utils.data.DataLoader):
+                  valid_dataloader: torch.utils.data.DataLoader = None):
     """Method to set dataloaders
     
     Args: train_dataloader, valid_dataloader
@@ -112,7 +112,7 @@ class TSEngine:
       loss = self.loss_fn(y_logits, y)
       self.callback_handler.on_loss_end(self)
       train_loss += np.array(loss.item())
-      train_metric += np.array(self.metric_fn(y_logits, y))
+      train_metric += np.array(self.metric_fn(y_logits, y)) if self.metric_fn else None
       loss.backward()
       self.callback_handler.on_step_begin(self)
       self.optimizer.step()
@@ -120,7 +120,7 @@ class TSEngine:
       self.optimizer.zero_grad()
       self.callback_handler.on_batch_end(self)
     train_loss /= len(self.train_dataloader)
-    train_metric /= len(self.train_dataloader)
+    train_metric /= len(self.train_dataloader) if self.metric_fn else None
     return train_loss, train_metric
 
   def valid_step(self):
@@ -133,9 +133,9 @@ class TSEngine:
         y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
         loss = self.loss_fn(y_logits, y)
         valid_loss += np.array(loss.item())
-        valid_metric += np.array(self.metric_fn(y_logits, y))
+        valid_metric += np.array(self.metric_fn(y_logits, y)) if self.metric_fn else None
     valid_loss /= len(self.valid_dataloader)
-    valid_metric /= len(self.valid_dataloader)
+    valid_metric /= len(self.valid_dataloader) if self.metric_fn else None
     return valid_loss, valid_metric
 
   def train(self, epochs: int):
@@ -147,7 +147,10 @@ class TSEngine:
     for epoch in tqdm(range(epochs), desc='Epochs'):
       self.total_epochs += 1
       train_loss, train_metric = self.train_step()
-      valid_loss, valid_metric = self.valid_step()
+      if self.valid_dataloader:
+        valid_loss, valid_metric = self.valid_step()
+      else:
+        valid_loss, valid_metric = None, None
       self.callback_handler.on_epoch_end(self,
                                          train_loss=train_loss,
                                          train_metric=train_metric if isinstance(train_metric, np.ndarray) else [train_metric],
@@ -545,9 +548,9 @@ class TSEngine:
         f"Epoch: {self.total_epochs} "
         + f"| LR: {np.array(self.learning_rates).mean():.1E} "
         + f"| train_loss: {np.around(kwargs['train_loss'], 3)} "
-        + f"| valid_loss: {np.around(kwargs['valid_loss'], 3)} "
-        + f"| train_metric: {np.around(kwargs['train_metric'], 3)} "
-        + f"| valid_metric: {np.around(kwargs['valid_metric'], 3)} "
+        + f"| valid_loss: {np.around(kwargs['valid_loss'], 3)} " if self.valid_dataloader else ""
+        + f"| train_metric: {np.around(kwargs['train_metric'], 3)} " if self.metric_fn else ""
+        + f"| valid_metric: {np.around(kwargs['valid_metric'], 3)} " if self.metric_fn else ""
       )
       self.learning_rates = []
 
