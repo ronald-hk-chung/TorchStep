@@ -112,7 +112,8 @@ class TSEngine:
       loss = self.loss_fn(y_logits, y)
       self.callback_handler.on_loss_end(self)
       train_loss += np.array(loss.item())
-      train_metric += np.array(self.metric_fn(y_logits, y)) if self.metric_fn else None
+      if self.metric_fn:
+        train_metric += np.array(self.metric_fn(y_logits, y))
       loss.backward()
       self.callback_handler.on_step_begin(self)
       self.optimizer.step()
@@ -120,7 +121,10 @@ class TSEngine:
       self.optimizer.zero_grad()
       self.callback_handler.on_batch_end(self)
     train_loss /= len(self.train_dataloader)
-    train_metric /= len(self.train_dataloader) if self.metric_fn else None
+    if self.metric_fn:
+      train_metric /= len(self.train_dataloader)
+    else:
+      train_metric = None
     return train_loss, train_metric
 
   def valid_step(self):
@@ -133,9 +137,13 @@ class TSEngine:
         y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
         loss = self.loss_fn(y_logits, y)
         valid_loss += np.array(loss.item())
-        valid_metric += np.array(self.metric_fn(y_logits, y)) if self.metric_fn else None
+        if self.metric_fn:
+          valid_metric += np.array(self.metric_fn(y_logits, y))
     valid_loss /= len(self.valid_dataloader)
-    valid_metric /= len(self.valid_dataloader) if self.metric_fn else None
+    if self.metric_fn:
+      valid_metric /= len(self.valid_dataloader)
+    else:
+      valid_metric = None
     return valid_loss, valid_metric
 
   def train(self, epochs: int):
