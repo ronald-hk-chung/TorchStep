@@ -42,6 +42,7 @@ class TSEngine:
     self.optimizer = optim[0](params=self.model.parameters(), **optim[1])
     self.loss_fn = loss_fn
     self.metric_fn = metric_fn
+    self.metric_keys = None
     self.train_dataloader = train_dataloader
     self.valid_dataloader = valid_dataloader
     self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -113,7 +114,12 @@ class TSEngine:
       self.callback_handler.on_loss_end(self)
       train_loss += np.array(loss.item())
       if self.metric_fn:
-        train_metric += np.array(self.metric_fn(y_logits, y))
+        if isinstance(metric:=self.metric_fn(y_logits, y), dict):
+          metric = np.array(list(metric.values()))
+          self.metric_keys = list(metric.keys())
+        else:
+          metric = np.array(metric)
+        train_metric += metric
       loss.backward()
       self.callback_handler.on_step_begin(self)
       self.optimizer.step()
@@ -121,10 +127,7 @@ class TSEngine:
       self.optimizer.zero_grad()
       self.callback_handler.on_batch_end(self)
     train_loss /= len(self.train_dataloader)
-    if self.metric_fn:
-      train_metric /= len(self.train_dataloader)
-    else:
-      train_metric = None
+    train_metric /= len(self.train_dataloader)
     return train_loss, train_metric
 
   def valid_step(self):
@@ -138,12 +141,13 @@ class TSEngine:
         loss = self.loss_fn(y_logits, y)
         valid_loss += np.array(loss.item())
         if self.metric_fn:
-          valid_metric += np.array(self.metric_fn(y_logits, y))
+          if isinstance(metric:=self.metric_fn(y_logits, y), dict):
+            metric = np.array(list(metric.values()))
+          else:
+            metric = np.array(metric)
+          valid_metric += metric
     valid_loss /= len(self.valid_dataloader)
-    if self.metric_fn:
-      valid_metric /= len(self.valid_dataloader)
-    else:
-      valid_metric = None
+    valid_metric /= len(self.valid_dataloader)
     return valid_loss, valid_metric
 
   def train(self, epochs: int):
@@ -558,8 +562,14 @@ class TSEngine:
         + f"| train_loss: {np.around(kwargs['train_loss'], 3)} "
         + (f"| valid_loss: {np.around(kwargs['valid_loss'], 3)} " if self.valid_dataloader else ""))
       if self.metric_fn:
-        print(f"train_metric: {np.around(kwargs['train_metric'], 3)} "
-               + (f"| valid_metric: {np.around(kwargs['valid_metric'], 3)} " if self.valid_dataloader else ""))
+        if self.metric_keys:
+          train_metric = dict(zip(self.metric_keys, np.around(kwargs['train_metric'], 3)))
+          valid_metric = dict(zip(self.metric_keys, np.around(kwargs['valid_metric'], 3))) if self.valid_dataloader else None
+        else:
+          train_metric = np.around(kwargs['train_metric'], 3)
+          valid_metric = np.around(kwargs['valid_metric'], 3) if self.valid_dataloader else None
+        print(f"train_metric: {train_metric} "
+              + (f"| valid_metric: {valid_metric} " if self.valid_dataloader else ""))
       self.learning_rates = []
 
   class TBWriter(Callback):
