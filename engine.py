@@ -44,7 +44,6 @@ class TSEngine:
     self.optimizer = optim[0](params=self.model.parameters(), **optim[1])
     self.loss_fn = loss_fn
     self.metric_fn = metric_fn
-    self.metric_keys = self.initialise_metric()
     self.device = "cuda" if torch.cuda.is_available() else "cpu"
     self.model.to(self.device)
     self.writer = None
@@ -66,7 +65,8 @@ class TSEngine:
                       self.TBWriter,
                       self.LearningRateScheduler,
                       self.GradientClipping]
-
+    self.metric_keys = self.initialise_metric()
+    
   @staticmethod
   def set_seed(seed=42):
     """Function to set random seed for torch, numpy and random
