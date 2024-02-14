@@ -37,7 +37,8 @@ class TSEngine:
                loss_fn: torch.nn.Module,
                metric_fn: Callable = None,
                train_dataloader: torch.utils.data.DataLoader = None,
-               valid_dataloader: torch.utils.data.DataLoader = None):
+               valid_dataloader: torch.utils.data.DataLoader = None,
+               valid_eval: bool = True):
     self.train_dataloader = train_dataloader
     self.valid_dataloader = valid_dataloader
     self.model = deepcopy(model)
@@ -66,6 +67,7 @@ class TSEngine:
                       self.LearningRateScheduler,
                       self.GradientClipping]
     self.metric_keys = self.initialise_metric()
+    self.valid_eval = valid_eval
 
   @staticmethod
   def set_seed(seed=42):
@@ -135,7 +137,7 @@ class TSEngine:
     return train_loss, train_metric
 
   def valid_step(self):
-    self.model.eval()
+    if self.valid_eval: self.model.eval()
     valid_loss, valid_metric = 0, 0
     with torch.inference_mode():
       for batch, (X, *y) in enumerate(self.valid_dataloader):
