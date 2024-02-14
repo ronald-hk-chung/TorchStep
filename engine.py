@@ -38,13 +38,13 @@ class TSEngine:
                metric_fn: Callable = None,
                train_dataloader: torch.utils.data.DataLoader = None,
                valid_dataloader: torch.utils.data.DataLoader = None):
+    self.train_dataloader = train_dataloader
+    self.valid_dataloader = valid_dataloader
     self.model = deepcopy(model)
     self.optimizer = optim[0](params=self.model.parameters(), **optim[1])
     self.loss_fn = loss_fn
     self.metric_fn = metric_fn
     self.metric_keys = self.initialise_metric()
-    self.train_dataloader = train_dataloader
-    self.valid_dataloader = valid_dataloader
     self.device = "cuda" if torch.cuda.is_available() else "cpu"
     self.model.to(self.device)
     self.writer = None
