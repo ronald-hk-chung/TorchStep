@@ -66,7 +66,7 @@ class TSEngine:
                       self.LearningRateScheduler,
                       self.GradientClipping]
     self.metric_keys = self.initialise_metric()
-    
+
   @staticmethod
   def set_seed(seed=42):
     """Function to set random seed for torch, numpy and random
@@ -106,12 +106,7 @@ class TSEngine:
     X = self.to_device(X)
     y = self.to_device(y)
     y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
-    if self.metric_fn:
-      if isinstance(metric:=self.metric_fn(y_logits, y), dict):
-        metric_keys = list(metric_keys())
-      else:
-        metric_keys = None
-    return metric_keys
+    return list(metric.keys()) if self.metric_fn and isinstance(metric:=self.metric_fn(y_logits, y), dict) else None
 
   def train_step(self):
     self.model.train()
