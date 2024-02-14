@@ -42,7 +42,7 @@ class TSEngine:
     self.optimizer = optim[0](params=self.model.parameters(), **optim[1])
     self.loss_fn = loss_fn
     self.metric_fn = metric_fn
-    self.metric_keys = None
+    self.metric_keys = self.initialise_metric()
     self.train_dataloader = train_dataloader
     self.valid_dataloader = valid_dataloader
     self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -101,11 +101,23 @@ class TSEngine:
     self.train_dataloader = train_dataloader
     self.valid_dataloader = valid_dataloader
 
+  def initialise_metric(self):
+    X, *y = next(iter(self.train_dataloader))
+    X = self.to_device(X)
+    y = self.to_device(y)
+    y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
+    if self.metric_fn:
+      if isinstance(metric:=self.metric_fn(y_logits, y), dict):
+        metric_keys = list(metric_keys())
+      else:
+        metric_keys = None
+    return metric_keys
+
   def train_step(self):
     self.model.train()
     self.callback_handler.on_epoch_begin(self)
     train_loss, train_metric = 0, 0
-    for batch, (X, *y) in enumerate(tqdm(self.train_dataloader, leave=False, desc='Train Step', position=1)):
+    for batch, (X, *y) in enumerate(self.train_dataloader):
       X = self.to_device(X)
       y = self.to_device(y)
       self.callback_handler.on_batch_begin(self)
@@ -114,11 +126,7 @@ class TSEngine:
       self.callback_handler.on_loss_end(self)
       train_loss += np.array(loss.item())
       if self.metric_fn:
-        if isinstance(metric:=self.metric_fn(y_logits, y), dict):
-          self.metric_keys = list(metric.keys())
-          metric = np.array(list(metric.values()))
-        else:
-          metric = np.array(metric)
+        metric = np.array(list(metric.values())) if self.metric_keys else np.array(metric)
         train_metric += metric
       loss.backward()
       self.callback_handler.on_step_begin(self)
@@ -134,17 +142,14 @@ class TSEngine:
     self.model.eval()
     valid_loss, valid_metric = 0, 0
     with torch.inference_mode():
-      for batch, (X, *y) in enumerate(tqdm(self.valid_dataloader, leave=False, desc='Valid Step', position=1)):
+      for batch, (X, *y) in enumerate(self.valid_dataloader):
         X = self.to_device(X)
         y = self.to_device(y)
         y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
         loss = self.loss_fn(y_logits, y)
         valid_loss += np.array(loss.item())
         if self.metric_fn:
-          if isinstance(metric:=self.metric_fn(y_logits, y), dict):
-            metric = np.array(list(metric.values()))
-          else:
-            metric = np.array(metric)
+          metric = np.array(list(metric.values())) if self.metric_keys else np.array(metric)
           valid_metric += metric
     valid_loss /= len(self.valid_dataloader)
     valid_metric /= len(self.valid_dataloader)
