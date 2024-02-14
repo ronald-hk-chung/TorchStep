@@ -121,6 +121,7 @@ class TSEngine:
       self.callback_handler.on_loss_end(self)
       train_loss += np.array(loss.item())
       if self.metric_fn:
+        metric = self.metric_fn(y_logits, y)
         metric = np.array(list(metric.values())) if self.metric_keys else np.array(metric)
         train_metric += metric
       loss.backward()
@@ -144,6 +145,7 @@ class TSEngine:
         loss = self.loss_fn(y_logits, y)
         valid_loss += np.array(loss.item())
         if self.metric_fn:
+          metric = self.metric_fn(y_logits, y)
           metric = np.array(list(metric.values())) if self.metric_keys else np.array(metric)
           valid_metric += metric
     valid_loss /= len(self.valid_dataloader)
