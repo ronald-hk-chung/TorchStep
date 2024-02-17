@@ -28,7 +28,7 @@ class TSEngine:
                metric_fn: Callable = None,
                train_dataloader: torch.utils.data.DataLoader = None,
                valid_dataloader: torch.utils.data.DataLoader = None):
-    self.model = deepcopy(model)
+    self.model = model
     self.optimizer = self.set_optimizer(optim)
     self.loss_fn = loss_fn
     self.metric_fn = metric_fn
