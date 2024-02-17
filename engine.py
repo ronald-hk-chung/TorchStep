@@ -28,7 +28,7 @@ class TSEngine:
                metric_fn: Callable = None,
                train_dataloader: torch.utils.data.DataLoader = None,
                valid_dataloader: torch.utils.data.DataLoader = None):
-    self.model = model
+    self.model = deepcopy(model)
     self.optimizer = self.set_optimizer(optim)
     self.loss_fn = loss_fn
     self.metric_fn = metric_fn
@@ -87,7 +87,7 @@ class TSEngine:
     """
     self.scheduler = scheduler
     self.is_batch_lr_scheduler = is_batch_lr_scheduler
-        
+
   @staticmethod
   def set_seed(seed=42):
     """Function to set random seed for torch, numpy and random
@@ -126,7 +126,7 @@ class TSEngine:
     self.callback_handler.on_train_begin(self)
     self.set_train_mode()
     train_loss, train_metric = 0, 0
-    for batch in self.train_dataloader:
+    for batch in tqdm(self.train_dataloader, desc='Train Step', leave=True):
       self.callback_handler.on_batch_begin(self)
       self.batch = self.to_device(batch)
       self.callback_handler.on_loss_begin(self)
@@ -158,7 +158,7 @@ class TSEngine:
     self.set_valid_mode()
     valid_loss, valid_metric = 0, 0
     with torch.inference_mode():
-      for batch in self.valid_dataloader:
+      for batch in tqdm(self.valid_dataloader, desc='Valid Step', leave=True):
         self.batch = self.to_device(batch)
         loss, metric = self.valid_step()
         valid_loss += np.array(loss.item())
