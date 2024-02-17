@@ -148,7 +148,7 @@ class TSEngine:
         self.batch = self.to_device(batch)
         loss, metric = self.valid_step()
         valid_loss += np.array(loss.item())
-        valid_metric += np.array(metric)
+        valid_metric += np.array(list(metric.values()) if type(metric) is dict else metric)
     valid_loss /= len(self.valid_dataloader)
     valid_metric /= len(self.valid_dataloader)
     self.callback_handler.on_valid_end(self)
