@@ -105,7 +105,7 @@ class TSEngine:
 
   def _train_loop(self):
     self.callback_handler.on_train_begin(self)
-    self.set_train_mode(self)
+    self.set_train_mode()
     train_loss, train_metric = 0, 0
     for batch in self.train_dataloader:
       self.callback_handler.on_batch_begin(self)
@@ -139,7 +139,7 @@ class TSEngine:
 
   def _valid_loop(self):
     self.callback_handler.on_valid_begin(self)
-    self.set_valid_mode(self)
+    self.set_valid_mode()
     valid_loss, valid_metric = 0, 0
     with torch.inference_mode():
       for batch in self.valid_dataloader:
@@ -588,7 +588,7 @@ class TSEngine:
               + (f"| valid_metric: {valid_metric} " if self.valid_dataloader else ""))
 
   class TBWriter(Callback):
-    def on_epoch_end(self, **kwargs):
+    def on_epoch_end(self):
       if self.writer:
         loss_scalars = {"train_loss": self.train_loss,
                         "valid_loss": self.valid_loss}
