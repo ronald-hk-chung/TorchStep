@@ -4,26 +4,17 @@ Contains class torchstep for train and valid step for PyTorch Model
 
 import datetime
 import random
-import os
-import pathlib
-import shutil
 from pathlib import Path
 from copy import copy, deepcopy
 from tqdm.auto import tqdm
 from typing import Callable, Type, Any
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 import torch
-import torchvision
 from torch import nn
-from torchvision import datasets, transforms
-from torchvision.transforms import v2 as T
-from torch.utils.data import DataLoader, Dataset
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import LambdaLR
 import torchinfo
-from PIL import Image
 
 
 class TSEngine:
@@ -37,14 +28,14 @@ class TSEngine:
                loss_fn: torch.nn.Module,
                metric_fn: Callable = None,
                train_dataloader: torch.utils.data.DataLoader = None,
-               valid_dataloader: torch.utils.data.DataLoader = None,
-               valid_eval: bool = True):
+               valid_dataloader: torch.utils.data.DataLoader = None):
     self.train_dataloader = train_dataloader
     self.valid_dataloader = valid_dataloader
     self.model = deepcopy(model)
     self.optimizer = optim[0](params=self.model.parameters(), **optim[1])
     self.loss_fn = loss_fn
     self.metric_fn = metric_fn
+    self.metric_keys = None
     self.device = "cuda" if torch.cuda.is_available() else "cpu"
     self.model.to(self.device)
     self.writer = None
@@ -66,9 +57,18 @@ class TSEngine:
                       self.TBWriter,
                       self.LearningRateScheduler,
                       self.GradientClipping]
-    self.metric_keys = self.initialise_metric()
-    self.valid_eval = valid_eval
+    self.batch = None
+    self.train_loss = None
+    self.train_metric = None
+    self.valid_loss = None
+    self.valid_metric = None
 
+  def set_train_mode(self):
+    self.model.train()
+  
+  def set_valid_mode(self):
+    self.model.valid()
+  
   @staticmethod
   def set_seed(seed=42):
     """Function to set random seed for torch, numpy and random
@@ -103,48 +103,48 @@ class TSEngine:
     self.train_dataloader = train_dataloader
     self.valid_dataloader = valid_dataloader
 
-  def initialise_metric(self):
-    X, *y = next(iter(self.train_dataloader))
-    X = self.to_device(X)
-    y = self.to_device(y)
-    y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
-    return list(metric.keys()) if self.metric_fn and isinstance(metric:=self.metric_fn(y_logits, y), dict) else None
-
-  def train_step(self):
-    self.model.train()
-    self.callback_handler.on_epoch_begin(self)
+  def _train_loop(self):
+    self.callback_handler.on_train_begin(self)
+    self.set_train_mode(self)
     train_loss, train_metric = 0, 0
-    for batch, (X, *y) in enumerate(self.train_dataloader):
-      X = self.to_device(X)
-      y = self.to_device(y)
+    for batch in self.train_dataloader:
       self.callback_handler.on_batch_begin(self)
-      y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
-      loss = self.loss_fn(y_logits, y)
-      self.callback_handler.on_loss_end(self)
+      self.batch = self.to_device(batch)
+      self.callback_handler.on_loss_begin(self)
+      loss = self.train_step()
       train_loss += np.array(loss.item())
       if self.metric_fn:
         metric = self.metric_fn(y_logits, y)
-        metric = np.array(list(metric.values())) if self.metric_keys else np.array(metric)
-        train_metric += metric
+        metric_values = np.array(list(metric.values())) if type(metric) in [dict] else np.array(metric)
+        train_metric += metric_values
+      self.callback_handler.on_loss_end(self)
       loss.backward()
       self.callback_handler.on_step_begin(self)
       self.optimizer.step()
       self.callback_handler.on_step_end(self)
       self.optimizer.zero_grad()
       self.callback_handler.on_batch_end(self)
+    if self.metric_fn:
+      self.metric_keys = list(metric.keys()) if type(metric) in [dict] else None
     train_loss /= len(self.train_dataloader)
     train_metric /= len(self.train_dataloader)
+    self.callback_handler.on_train_end(self)
     return train_loss, train_metric
 
-  def valid_step(self):
-    if self.valid_eval: self.model.eval()
+  def train_step(self):
+    X, *y = self.batch
+    y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
+    loss = self.loss_fn(y_logits, y)
+    return loss
+
+  def _valid_loop(self):
+    self.callback_handler.on_valid_begin(self)
+    self.set_valid_mode(self)
     valid_loss, valid_metric = 0, 0
     with torch.inference_mode():
-      for batch, (X, *y) in enumerate(self.valid_dataloader):
-        X = self.to_device(X)
-        y = self.to_device(y)
-        y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
-        loss = self.loss_fn(y_logits, y)
+      for batch in self.valid_dataloader:
+        self.batch = self.to_device(batch)
+        loss = self.valid_step()
         valid_loss += np.array(loss.item())
         if self.metric_fn:
           metric = self.metric_fn(y_logits, y)
@@ -152,35 +152,44 @@ class TSEngine:
           valid_metric += metric
     valid_loss /= len(self.valid_dataloader)
     valid_metric /= len(self.valid_dataloader)
+    self.callback_handler.on_valid_end(self)
     return valid_loss, valid_metric
+  
+  def valid_step(self):
+    X, *y = self.batch
+    y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
+    loss = self.loss_fn(y_logits, y)
+    return loss
 
   def train(self, epochs: int):
     """Method for TSEngine to run train and valid loops
     
     Args: epochs [int]: num of epochs to run
     """
-    self.callback_handler.on_train_begin(self)
     for epoch in tqdm(range(epochs), desc='Epochs', position=0):
       self.total_epochs += 1
-      train_loss, train_metric = self.train_step()
+      self.callback_handler.on_epoch_begin(self)
+      self.train_loss, self.train_metric = self._train_loop()
       if self.valid_dataloader:
-        valid_loss, valid_metric = self.valid_step()
+        self.valid_loss, self.valid_metric = self._valid_loop()
       else:
-        valid_loss, valid_metric = None, None
-      self.callback_handler.on_epoch_end(self,
-                                         train_loss=train_loss,
-                                         train_metric=train_metric if isinstance(train_metric, np.ndarray) else [train_metric],
-                                         valid_loss=valid_loss,
-                                         valid_metric=valid_metric if isinstance(valid_metric, np.ndarray) else [valid_metric])
+        self.valid_loss, self.valid_metric = None, None
+      self.callback_handler.on_epoch_end(self)
+      self.learning_rates = []
 
-  def to_device(self, 
-                X: Any):
-    """Method to put variable X to gpu device if available"""
-    if torch.is_tensor(X):
+  def to_device(self, X: Any):
+    """Method to put variable X to gpu if available"""
+    if type(X) is list:
+      return [self.to_device(x) for x in X]
+    elif type(X) is tuple:
+      return tuple(self.to_device(x) for x in X)
+    elif type(X) is dict:
+      return {k: self.to_device(x) for k, x in X.items()}
+    elif torch.is_tensor(X):
       return X.to(self.device)
     else:
-      return X[0].to(self.device) if len(X)==1 else [x.to(self.device) for x in X]
-
+      return X
+  
   @staticmethod
   def make_lr_fn(start_lr: float,
                  end_lr: float,
@@ -200,7 +209,7 @@ class TSEngine:
   def set_lr(self,
              lr: float):
     """Method to set learning rate
-    
+
     Args: lr [float]: learning rate
     """
     for g in self.optimizer.param_groups:
@@ -238,11 +247,9 @@ class TSEngine:
     tracking = {"loss": [], "lr": []}
     iteration = 0
     while iteration < num_iter:
-      for X, *y in self.train_dataloader:
-        X = self.to_device(X)
-        y = self.to_device(y)
-        y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
-        loss = self.loss_fn(y_logits, y)
+      for batch in self.train_dataloader:
+        self.batch = self.to_device(batch)
+        loss = self.train_step()
         self.optimizer.zero_grad()
         loss.backward()
         tracking["lr"].append(scheduler.get_last_lr()[0])
@@ -338,7 +345,6 @@ class TSEngine:
                             col_names=col_names,
                             col_width=col_width,
                             row_settings=row_settings))
-
 
 
   def freeze(self, layers: list[str] = None):
@@ -527,6 +533,8 @@ class TSEngine:
     def __init__(self, **kwargs): pass
     def on_train_begin(self, **kwargs): pass
     def on_train_end(self, **kwargs): pass
+    def on_valid_begin(self, **kwargs): pass
+    def on_valid_end(self, **kwargs): pass
     def on_epoch_begin(self, **kwargs): pass
     def on_epoch_end(self, **kwargs): pass
     def on_batch_begin(self, **kwargs): pass
@@ -537,83 +545,86 @@ class TSEngine:
     def on_step_end(self, **kwargs): pass
 
   class callback_handler:
-    def on_train_begin(self, **kwargs):
-      for callback in self.callbacks: callback.on_train_begin(self, **kwargs)
-    def on_train_end(self, **kwargs):
-      for callback in self.callbacks: callback.on_train_end(self, **kwargs)
-    def on_epoch_begin(self, **kwargs):
-      for callback in self.callbacks: callback.on_epoch_begin(self, **kwargs)
-    def on_epoch_end(self, **kwargs):
-      for callback in self.callbacks: callback.on_epoch_end(self, **kwargs)
-    def on_batch_begin(self, **kwargs):
-      for callback in self.callbacks: callback.on_batch_begin(self, **kwargs)
-    def on_batch_end(self, **kwargs):
-      for callback in self.callbacks: callback.on_batch_end(self, **kwargs)
-    def on_loss_begin(self, **kwargs):
-      for callback in self.callbacks: callback.on_loss_begin(self, **kwargs)
-    def on_loss_end(self, **kwargs):
-      for callback in self.callbacks: callback.on_loss_end(self, **kwargs)
-    def on_step_begin(self, **kwargs):
-      for callback in self.callbacks: callback.on_step_begin(self, **kwargs)
-    def on_step_end(self, **kwargs):
-      for callback in self.callbacks: callback.on_step_end(self, **kwargs)
+    def on_train_begin(self):
+      for callback in self.callbacks: callback.on_train_begin(self)
+    def on_train_end(self):
+      for callback in self.callbacks: callback.on_train_end(self)
+    def on_valid_begin(self):
+      for callback in self.callbacks: callback.on_valid_begin(self)
+    def on_valid_end(self):
+      for callback in self.callbacks: callback.on_valid_end(self)
+    def on_epoch_begin(self):
+      for callback in self.callbacks: callback.on_epoch_begin(self)
+    def on_epoch_end(self):
+      for callback in self.callbacks: callback.on_epoch_end(self)
+    def on_batch_begin(self):
+      for callback in self.callbacks: callback.on_batch_begin(self)
+    def on_batch_end(self):
+      for callback in self.callbacks: callback.on_batch_end(self)
+    def on_loss_begin(self):
+      for callback in self.callbacks: callback.on_loss_begin(self)
+    def on_loss_end(self):
+      for callback in self.callbacks: callback.on_loss_end(self)
+    def on_step_begin(self):
+      for callback in self.callbacks: callback.on_step_begin(self)
+    def on_step_end(self):
+      for callback in self.callbacks: callback.on_step_end(self)
 
   class PrintResults(Callback):
-    def on_epoch_end(self, **kwargs):
+    def on_epoch_end(self):
       print(
         f"Epoch: {self.total_epochs} "
         + f"| LR: {np.array(self.learning_rates).mean():.1E} "
-        + f"| train_loss: {np.around(kwargs['train_loss'], 3)} "
-        + (f"| valid_loss: {np.around(kwargs['valid_loss'], 3)} " if self.valid_dataloader else ""))
+        + f"| train_loss: {np.around(self.train_loss, 3)} "
+        + (f"| valid_loss: {np.around(self.valid_loss, 3)} " if self.valid_dataloader else ""))
       if self.metric_fn:
         if self.metric_keys:
-          train_metric = dict(zip(self.metric_keys, np.around(kwargs['train_metric'], 3)))
-          valid_metric = dict(zip(self.metric_keys, np.around(kwargs['valid_metric'], 3))) if self.valid_dataloader else None
+          train_metric = dict(zip(self.metric_keys, np.around(self.train_metric, 3)))
+          valid_metric = dict(zip(self.metric_keys, np.around(self.valid_metric, 3))) if self.valid_dataloader else None
         else:
-          train_metric = np.around(kwargs['train_metric'], 3)
-          valid_metric = np.around(kwargs['valid_metric'], 3) if self.valid_dataloader else None
+          train_metric = np.around(self.train_metric, 3)
+          valid_metric = np.around(self.valid_metric, 3) if self.valid_dataloader else None
         print(f"train_metric: {train_metric} "
               + (f"| valid_metric: {valid_metric} " if self.valid_dataloader else ""))
-      self.learning_rates = []
 
   class TBWriter(Callback):
     def on_epoch_end(self, **kwargs):
       if self.writer:
-        loss_scalars = {"train_loss": kwargs["train_loss"],
-                        "valid_loss": kwargs["valid_loss"]}
+        loss_scalars = {"train_loss": self.train_loss,
+                        "valid_loss": self.valid_loss}
         self.writer.add_scalars(main_tag="loss",
                                 tag_scalar_dict=loss_scalars,
                                 global_step=self.total_epochs)
 
-        for i, train_metric in enumerate(kwargs["train_metric"]):
-          acc_scalars = {"train_metric": kwargs["train_metric"][i],
-                         "valid_metric": kwargs["valid_metric"][i]}
-          self.writer.add_scalars(main_tag=f"metric_{i}",
+        for i, train_metric in enumerate(self.train_metric):
+          acc_scalars = {"train_metric": self.train_metric[i],
+                         "valid_metric": self.valid_metric[i]}
+          self.writer.add_scalars(main_tag=self.metric_keys[i] if self.metric_keys else f"metric_{i}",
                                   tag_scalar_dict=acc_scalars,
                                   global_step=self.total_epochs)
         self.writer.close()
 
   class SaveResults(Callback):
-    def on_epoch_end(self, **kwargs):
-      self.results["train_loss"].append(kwargs["train_loss"])
-      self.results["train_metric"].append(kwargs["train_metric"])
-      self.results["valid_loss"].append(kwargs["valid_loss"])
-      self.results["valid_metric"].append(kwargs["valid_metric"])
+    def on_epoch_end(self):
+      self.results["train_loss"].append(self.train_loss)
+      self.results["train_metric"].append(self.train_metric)
+      self.results["valid_loss"].append(self.valid_loss)
+      self.results["valid_metric"].append(self.valid_metric)
 
   class LearningRateScheduler(Callback):
-    def on_batch_end(self, **kwargs):
+    def on_batch_end(self):
       if self.scheduler and self.is_batch_lr_scheduler:
         self.scheduler.step()
       self.learning_rates.append(self.optimizer.state_dict()["param_groups"][0]["lr"])
 
-    def on_epoch_end(self, **kwargs):
+    def on_epoch_end(self):
       self.learning_rates = []
       if self.scheduler and not self.is_batch_lr_scheduler:
         if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-          self.scheduler.step(kwargs["valid_loss"])
+          self.scheduler.step(self.valid_loss)
         else:
           self.scheduler.step()
 
   class GradientClipping(Callback):
-    def on_step_begin(self, **kwargs):
+    def on_step_begin(self):
       if callable(self.clipping): self.clipping()
