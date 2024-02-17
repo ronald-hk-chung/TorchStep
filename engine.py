@@ -4,7 +4,6 @@ Contains class torchstep for train and valid step for PyTorch Model
 
 import datetime
 import random
-from pathlib import Path
 from copy import copy, deepcopy
 from tqdm.auto import tqdm
 from typing import Callable, Type, Any
@@ -25,17 +24,17 @@ class TSEngine:
   def __init__(self,
                model: torch.nn.Module,
                optim: tuple[torch.optim.Optimizer, dict[str, float]],
-               loss_fn: torch.nn.Module,
+               loss_fn: Callable,
                metric_fn: Callable = None,
                train_dataloader: torch.utils.data.DataLoader = None,
                valid_dataloader: torch.utils.data.DataLoader = None):
-    self.train_dataloader = train_dataloader
-    self.valid_dataloader = valid_dataloader
-    self.model = deepcopy(model)
-    self.optimizer = optim[0](params=self.model.parameters(), **optim[1])
+    self.model = model
+    self.optimizer = self.set_optimizer(optim)
     self.loss_fn = loss_fn
     self.metric_fn = metric_fn
     self.metric_keys = None
+    self.train_dataloader = train_dataloader
+    self.valid_dataloader = valid_dataloader
     self.device = "cuda" if torch.cuda.is_available() else "cpu"
     self.model.to(self.device)
     self.writer = None
@@ -68,7 +67,27 @@ class TSEngine:
   
   def set_valid_mode(self):
     self.model.eval()
+
+  def set_optimizer(self, optim: tuple[torch.optim.Optimizer, dict[str, float]]):
+    """Method to set optimizer
+    
+    Args:
+      optim [tuple[torch.optim.Opimizer, dictionary of parameters]]
+      Example usage: optim=(torch.optim.Adam, {'lr': 1e-3})
+    """
+    optimizer = optim[0](params=self.model.parameters(), **optim[1])
+    return optimizer
   
+  def set_lr_scheduler(self, scheduler, is_batch_lr_scheduler=False):
+    """Method to set LR scheduler
+    
+    Args:
+      scheduler [torch.optim.scheduler]
+      is_batch_lr_scheduler [bool]: True for batch scheduler, False for epoch scheduler
+    """
+    self.scheduler = scheduler
+    self.is_batch_lr_scheduler = is_batch_lr_scheduler
+        
   @staticmethod
   def set_seed(seed=42):
     """Function to set random seed for torch, numpy and random
@@ -102,11 +121,6 @@ class TSEngine:
     """
     self.train_dataloader = train_dataloader
     self.valid_dataloader = valid_dataloader
-
-  def train_once(self):
-    self.set_train_mode()
-    self.batch = next(iter(train_dataloader))
-
 
   def _train_loop(self):
     self.callback_handler.on_train_begin(self)
@@ -300,16 +314,6 @@ class TSEngine:
     self.results = checkpoint["results"]
     self.model.train()
 
-  def set_lr_scheduler(self, scheduler, is_batch_lr_scheduler=False):
-    """Method to set LR scheduler
-    
-    Args:
-      scheduler [torch.optim.scheduler]
-      is_batch_lr_scheduler [bool]: True for batch scheduler, False for epoch scheduler
-    """
-    self.scheduler = scheduler
-    self.is_batch_lr_scheduler = is_batch_lr_scheduler
-
   def model_info(self,
                  col_names: list[str] = ["input_size", "output_size", "num_params", "trainable"],
                  col_width: int = 20,
@@ -367,15 +371,6 @@ class TSEngine:
         if layer in name:
           for param in module.parameters():
             param.requires_grad = True
-
-  def set_optimizer(self, optim: tuple[torch.optim.Optimizer, dict[str, float]]):
-    """Method to set optimizer
-    
-    Args:
-      optim [tuple[torch.optim.Opimizer, dictionary of parameters]]
-      Example usage: optim=(torch.optim.Adam, {'lr': 1e-3})
-    """
-    self.optimizer = optim[0](params=self.model.parameters(), **optim[1])
 
   def predict(self, X):
     """Method for TSEngine to predict in inference_mode"""
