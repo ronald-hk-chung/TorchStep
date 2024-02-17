@@ -67,7 +67,7 @@ class TSEngine:
     self.model.train()
   
   def set_valid_mode(self):
-    self.model.valid()
+    self.model.eval()
   
   @staticmethod
   def set_seed(seed=42):
