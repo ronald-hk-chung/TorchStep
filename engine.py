@@ -158,7 +158,7 @@ class TSEngine:
     loss = self.loss_fn(y_logits, y)
     if self.metric_fn:
       metric = self.metric_fn(y_logits, y)
-      metric = list(metric.values()) if self.metric_keys else metric
+      metric = list(metric.values()) if type(metric) is dict else metric
     return loss, metric
 
   def train(self, epochs: int):
