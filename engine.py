@@ -103,6 +103,11 @@ class TSEngine:
     self.train_dataloader = train_dataloader
     self.valid_dataloader = valid_dataloader
 
+  def train_once(self):
+    self.set_train_mode()
+    self.batch = next(iter(train_dataloader))
+
+
   def _train_loop(self):
     self.callback_handler.on_train_begin(self)
     self.set_train_mode()
@@ -113,7 +118,7 @@ class TSEngine:
       self.callback_handler.on_loss_begin(self)
       loss, metric = self.train_step()
       train_loss += np.array(loss.item())
-      train_metric += np.array(metric)
+      train_metric += np.array(list(metric.values()) if type(metric) is dict else metric)
       self.callback_handler.on_loss_end(self)
       loss.backward()
       self.callback_handler.on_step_begin(self)
@@ -121,10 +126,9 @@ class TSEngine:
       self.callback_handler.on_step_end(self)
       self.optimizer.zero_grad()
       self.callback_handler.on_batch_end(self)
-    if self.metric_fn:
-      self.metric_keys = list(metric.keys()) if type(metric) in [dict] else None
     train_loss /= len(self.train_dataloader)
     train_metric /= len(self.train_dataloader)
+    self.metric_keys = list(metric.keys()) if type(metric) is dict else None
     self.callback_handler.on_train_end(self)
     return train_loss, train_metric
 
@@ -132,9 +136,7 @@ class TSEngine:
     X, *y = self.batch
     y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
     loss = self.loss_fn(y_logits, y)
-    if self.metric_fn:
-      metric = self.metric_fn(y_logits, y)
-      metric = list(metric.values()) if type(metric) is dict else metric
+    metric = self.metric_fn(y_logits, y) if self.metric_fn else 0
     return loss, metric
 
   def _valid_loop(self):
@@ -156,9 +158,7 @@ class TSEngine:
     X, *y = self.batch
     y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
     loss = self.loss_fn(y_logits, y)
-    if self.metric_fn:
-      metric = self.metric_fn(y_logits, y)
-      metric = list(metric.values()) if type(metric) is dict else metric
+    metric = self.metric_fn(y_logits, y) if self.metric_fn else 0
     return loss, metric
 
   def train(self, epochs: int):
@@ -179,16 +179,11 @@ class TSEngine:
 
   def to_device(self, X: Any):
     """Method to put variable X to gpu if available"""
-    if type(X) is list:
-      return [self.to_device(x) for x in X]
-    elif type(X) is tuple:
-      return tuple(self.to_device(x) for x in X)
-    elif type(X) is dict:
-      return {k: self.to_device(x) for k, x in X.items()}
-    elif torch.is_tensor(X):
-      return X.to(self.device)
-    else:
-      return X
+    if type(X) is list: return [self.to_device(x) for x in X]
+    elif type(X) is tuple: return tuple(self.to_device(x) for x in X)
+    elif type(X) is dict: return {k: self.to_device(x) for k, x in X.items()}
+    elif torch.is_tensor(X): return X.to(self.device)
+    else: return X
   
   @staticmethod
   def make_lr_fn(start_lr: float,
@@ -198,12 +193,10 @@ class TSEngine:
     """Method to generate learning rate function (internal only)"""
     if step_mode == "linear":
       factor = (end_lr / start_lr - 1) / num_iter
-      def lr_fn(iteration):
-        return 1 + iteration * factor
+      def lr_fn(iteration): return 1 + iteration * factor
     else:
       factor = (np.log(end_lr) - np.log(start_lr)) / num_iter
-      def lr_fn(iteration):
-        return np.exp(factor) ** iteration
+      def lr_fn(iteration): return np.exp(factor) ** iteration
     return lr_fn
 
   def set_lr(self,
