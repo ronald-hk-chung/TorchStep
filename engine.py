@@ -126,7 +126,7 @@ class TSEngine:
     self.callback_handler.on_train_begin(self)
     self.set_train_mode()
     train_loss, train_metric = 0, 0
-    for batch in tqdm(self.train_dataloader, desc='Train Step', leave=True):
+    for batch in tqdm(self.train_dataloader, desc='Train Step', leave=False):
       self.callback_handler.on_batch_begin(self)
       self.batch = self.to_device(batch)
       self.callback_handler.on_loss_begin(self)
@@ -158,7 +158,7 @@ class TSEngine:
     self.set_valid_mode()
     valid_loss, valid_metric = 0, 0
     with torch.inference_mode():
-      for batch in tqdm(self.valid_dataloader, desc='Valid Step', leave=True):
+      for batch in tqdm(self.valid_dataloader, desc='Valid Step', leave=False):
         self.batch = self.to_device(batch)
         loss, metric = self.valid_step()
         valid_loss += np.array(loss.item())
@@ -189,7 +189,6 @@ class TSEngine:
       else:
         self.valid_loss, self.valid_metric = None, None
       self.callback_handler.on_epoch_end(self)
-      self.learning_rates = []
 
   def to_device(self, X: Any):
     """Method to put variable X to gpu if available"""
@@ -572,8 +571,9 @@ class TSEngine:
         else:
           train_metric = np.around(self.train_metric, 3)
           valid_metric = np.around(self.valid_metric, 3) if self.valid_dataloader else None
-        print(f"train_metric: {train_metric} "
-              + (f"| valid_metric: {valid_metric} " if self.valid_dataloader else ""))
+        print(f"train_metric: {train_metric}")
+        if self.valid_dataloader:
+          print(f"valid_metric: {valid_metric}")
 
   class TBWriter(Callback):
     def on_epoch_end(self):
