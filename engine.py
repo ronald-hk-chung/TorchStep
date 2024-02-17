@@ -111,12 +111,9 @@ class TSEngine:
       self.callback_handler.on_batch_begin(self)
       self.batch = self.to_device(batch)
       self.callback_handler.on_loss_begin(self)
-      loss = self.train_step()
+      loss, metric = self.train_step()
       train_loss += np.array(loss.item())
-      if self.metric_fn:
-        metric = self.metric_fn(y_logits, y)
-        metric_values = np.array(list(metric.values())) if type(metric) in [dict] else np.array(metric)
-        train_metric += metric_values
+      train_metric += np.array(metric)
       self.callback_handler.on_loss_end(self)
       loss.backward()
       self.callback_handler.on_step_begin(self)
@@ -135,7 +132,10 @@ class TSEngine:
     X, *y = self.batch
     y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
     loss = self.loss_fn(y_logits, y)
-    return loss
+    if self.metric_fn:
+      metric = self.metric_fn(y_logits, y)
+      metric = list(metric.values()) if type(metric) is dict else metric
+    return loss, metric
 
   def _valid_loop(self):
     self.callback_handler.on_valid_begin(self)
@@ -144,12 +144,9 @@ class TSEngine:
     with torch.inference_mode():
       for batch in self.valid_dataloader:
         self.batch = self.to_device(batch)
-        loss = self.valid_step()
+        loss, metric = self.valid_step()
         valid_loss += np.array(loss.item())
-        if self.metric_fn:
-          metric = self.metric_fn(y_logits, y)
-          metric = np.array(list(metric.values())) if self.metric_keys else np.array(metric)
-          valid_metric += metric
+        valid_metric += np.array(metric)
     valid_loss /= len(self.valid_dataloader)
     valid_metric /= len(self.valid_dataloader)
     self.callback_handler.on_valid_end(self)
@@ -159,7 +156,10 @@ class TSEngine:
     X, *y = self.batch
     y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
     loss = self.loss_fn(y_logits, y)
-    return loss
+    if self.metric_fn:
+      metric = self.metric_fn(y_logits, y)
+      metric = list(metric.values()) if self.metric_keys else metric
+    return loss, metric
 
   def train(self, epochs: int):
     """Method for TSEngine to run train and valid loops
