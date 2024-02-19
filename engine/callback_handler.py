@@ -42,6 +42,8 @@ class Callback:
         pass
 
 
+callbacks = []
+
 class callback_handler:
     def __init__(self):
         self.callback_handler = CallbackHandler
@@ -141,6 +143,14 @@ class PrintResults(Callback):
                 print(f"valid_metric: {valid_metric}")
 
 
+class SaveResults(Callback):
+    def on_epoch_end(self):
+        self.results["train_loss"].append(self.train_loss)
+        self.results["train_metric"].append(self.train_metric)
+        self.results["valid_loss"].append(self.valid_loss)
+        self.results["valid_metric"].append(self.valid_metric)
+
+
 class TBWriter(Callback):
     def on_epoch_end(self):
         if self.writer:
@@ -167,14 +177,6 @@ class TBWriter(Callback):
                     global_step=self.total_epochs,
                 )
             self.writer.close()
-
-
-class SaveResults(Callback):
-    def on_epoch_end(self):
-        self.results["train_loss"].append(self.train_loss)
-        self.results["train_metric"].append(self.train_metric)
-        self.results["valid_loss"].append(self.valid_loss)
-        self.results["valid_metric"].append(self.valid_metric)
 
 
 class LearningRateScheduler(Callback):
