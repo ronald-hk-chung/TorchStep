@@ -14,10 +14,10 @@ from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import LambdaLR
 import torchinfo
-from .callback import CallbackHandler
+from .callback import callback_handler
 
 
-class TSEngine(CallbackHandler):
+class TSEngine(callback_handler):
     """
     TorchStep class contains a number of useful functions for Pytorch Model Training
     """

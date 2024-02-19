@@ -39,9 +39,9 @@ class Callback:
         pass
 
 
-class CallbackHandler:
+class callback_handler:
     def __init__(self):
-        self.Callback = Callback
+        self.callback_handler = CallbackHandler
         self.PrintResults = PrintResults
         self.TBWriter = TBWriter
         self.SaveResults = SaveResults
@@ -55,6 +55,8 @@ class CallbackHandler:
             self.GradientClipping,
         ]
 
+
+class CallbackHandler:
     def on_train_begin(self):
         for callback in self.callbacks:
             callback.on_train_begin(self)
