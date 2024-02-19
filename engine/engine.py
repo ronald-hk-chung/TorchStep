@@ -16,10 +16,7 @@ import torchinfo
 from .callback_handler import callback_handler
 from .learning_rate_handler import learning_rate_handler
 
-EngineClass = [
-    callback_handler,
-    learning_rate_handler,
-]
+EngineClass = [learning_rate_handler, callback_handler]
 
 
 class TSEngine(*EngineClass):
