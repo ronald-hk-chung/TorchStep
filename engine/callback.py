@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class Callback:
     def __init__(self):
         pass
