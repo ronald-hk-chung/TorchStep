@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from torch.optim.lr_scheduler import LambdaLR
 
 
 class learning_rate_handler:
@@ -9,7 +10,7 @@ class learning_rate_handler:
         self.is_batch_lr_scheduler = False
 
     def set_lr_scheduler(
-        self, scheduler: torch.optim.scheduler, is_batch_lr_scheduler: bool = False
+        self, scheduler: torch.optim.lr_scheduler, is_batch_lr_scheduler: bool = False
     ):
         """Method to set LR scheduler
 

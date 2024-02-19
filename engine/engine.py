@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
-from torch.optim.lr_scheduler import LambdaLR
 import torchinfo
 from .callback_handler import callback_handler
 from .learning_rate_handler import learning_rate_handler
@@ -157,6 +156,7 @@ class TSEngine(*EngineClass):
     def train_step(self):
         """Standard train step"""
         X, *y = self.batch
+        y = y[0] if len(y) == 1 else y
         y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
         loss = self.loss_fn(y_logits, y)
         metric = self.metric_fn(y_logits, y) if self.metric_fn else 0
@@ -182,6 +182,7 @@ class TSEngine(*EngineClass):
     def valid_step(self):
         """Standard valid step"""
         X, *y = self.batch
+        y = y[0] if len(y) == 1 else y
         y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
         loss = self.loss_fn(y_logits, y)
         metric = self.metric_fn(y_logits, y) if self.metric_fn else 0
