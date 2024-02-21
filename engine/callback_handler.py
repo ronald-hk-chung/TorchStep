@@ -44,11 +44,7 @@ class CBHandler:
 
     def __init__(self):
         self.callback_handler = callback_handler
-        # self.PrintResults = PrintResults
-        # self.TBWriter = TBWriter
-        # self.SaveResults = SaveResults
-        # self.LearningRateScheduler = LearningRateScheduler
-        self.GradientClipping = GradientClipping
+        
         self.callbacks = [
             self.PrintResults,
             self.TBWriter,
@@ -106,9 +102,3 @@ class callback_handler:
     def on_step_end(self):
         for callback in self.callbacks:
             callback.on_step_end(self)
-
-
-class GradientClipping(Callback):
-    def on_step_begin(self):
-        if callable(self.clipping):
-            self.clipping()

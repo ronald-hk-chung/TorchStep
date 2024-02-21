@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from tqdm.auto import tqdm
 from torch.optim.lr_scheduler import LambdaLR
 from copy import deepcopy
 import matplotlib.pyplot as plt
@@ -90,6 +91,7 @@ class LRHandler:
         scheduler = LambdaLR(self.optimizer, lr_lambda=lr_fn)
         tracking = {"loss": [], "lr": []}
         iteration = 0
+        pbar = tqdm(total=num_iter + 1)
         while iteration < num_iter:
             for batch in self.train_dataloader:
                 self.batch = self.to_device(batch)
@@ -108,6 +110,7 @@ class LRHandler:
                     break
                 self.optimizer.step()
                 scheduler.step()
+        pbar.close()
         max_grad_idx = np.gradient(np.array(tracking["loss"])).argmin()
         min_loss_idx = np.array(tracking["loss"]).argmin()
         max_grad_lr = tracking["lr"][max_grad_idx]
@@ -161,10 +164,8 @@ class LRHandler:
             max_grad_lr, min_loss_lr = self.lr_range_test(
                 end_lr=1, num_iter=100, step_mode="exp", show_graph=False
             )
-            if max_lr is None:
-                max_lr = min_loss_lr
-            if min_lr is None:
-                min_lr = max_grad_lr
+            max_lr = max_lr if max_lr else min_loss_lr
+            min_lr = min_lr if min_lr else max_grad_lr
 
         print(f"Max LR: {max_lr:.1E} | Min LR: {min_lr:.1E}")
         pervious_optimizer = deepcopy(self.optimizer)

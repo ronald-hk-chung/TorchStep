@@ -1,11 +1,13 @@
 import torch
 from torch import nn
+from .callback_handler import Callback
 
 class GradientHandler:
     """Class for handling gradient clipping"""
 
     def __init__(self):
         self.clipping = None
+        self.GradientClipping = GradientClipping
 
     def set_clip_grad_value(self, clip_value):
         """Method to perform Value Clipping
@@ -59,3 +61,9 @@ class GradientHandler:
             for handle in self.clipping:
                 handle.remove()
         self.clipping = None
+
+
+class GradientClipping(Callback):
+    def on_step_begin(self):
+        if callable(self.clipping):
+            self.clipping()

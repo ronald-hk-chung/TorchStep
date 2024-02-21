@@ -1,6 +1,6 @@
 import numpy as np
 from .callback_handler import Callback
-
+import matplotlib.pyplot as plt
 
 class ResultHandler:
     """Class for handling Printing and Saving Results"""
@@ -14,6 +14,14 @@ class ResultHandler:
             "valid_loss": [],
             "valid_metric": [],
         }
+
+    def plot_loss_curve(self):
+        """Method to plot loss curve"""
+        plt.plot(self.results["train_loss"], label="Train Loss")
+        plt.plot(self.results["valid_loss"], label="Valid Loss")
+        plt.title("Loss")
+        plt.xlabel("Epochs")
+        plt.legend()
 
 
 class PrintResults(Callback):

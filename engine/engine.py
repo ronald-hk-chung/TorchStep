@@ -6,7 +6,6 @@ from copy import deepcopy
 from typing import Callable
 from tqdm.auto import tqdm
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
 from .device_handler import DeviceHandler
 from .callback_handler import CBHandler
@@ -16,6 +15,7 @@ from .torchinfo_handler import TorchInfoHandler
 from .result_handler import ResultHandler
 from .gradient_handler import GradientHandler
 from .hook_handler import HookHandler
+from .checkpoint_handler import CheckPointHandler
 
 Handles = [
     DeviceHandler,
@@ -25,6 +25,7 @@ Handles = [
     ResultHandler,
     GradientHandler,
     HookHandler,
+    CheckPointHandler,
     CBHandler,
 ]
 
@@ -51,29 +52,7 @@ class TSEngine(*Handles):
         self.valid_dataloader = valid_dataloader
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
-        # self.writer = None
-        # self.scheduler = None
-        # self.is_batch_lr_scheduler = False
-        # self.clipping = None
-        # self.results = {
-        #     "train_loss": [],
-        #     "train_metric": [],
-        #     "valid_loss": [],
-        #     "valid_metric": [],
-        # }
-        # self.learning_rates = []
         self.total_epochs = 0
-        # self.modules = list(self.model.named_modules())
-        # self.layers = {name: layer for name, layer in self.modules[1:]}
-        # self.forward_hook_handles = []
-        # self.backward_hook_handles = []
-        # self.callbacks = [
-        #     self.SaveResults,
-        #     self.PrintResults,
-        #     self.TBWriter,
-        #     self.LearningRateScheduler,
-        #     self.GradientClipping,
-        # ]
         self.batch = None
         self.train_loss = None
         self.train_metric = None
@@ -83,14 +62,6 @@ class TSEngine(*Handles):
         self.metric = None
         for handle in Handles:
             handle.__init__(self)
-
-    def set_train_mode(self):
-        """Method to set mode of model in _train_loop"""
-        self.model.train()
-
-    def set_valid_mode(self):
-        """Method to set mode of model in _train_loop"""
-        self.model.eval()
 
     def set_optimizer(self, optim: tuple[torch.optim.Optimizer, dict[str, float]]):
         """Method to set optimizer
@@ -114,10 +85,20 @@ class TSEngine(*Handles):
         self.train_dataloader = train_dataloader
         self.valid_dataloader = valid_dataloader
 
-    def split_batch(self):
-        X, *y = self.batch
-        y = y[0] if len(y) == 1 else y
-        return X, y
+    def train(self, epochs: int):
+        """Method for TSEngine to run train and valid loops
+
+        Args: epochs [int]: num of epochs to run
+        """
+        for epoch in tqdm(range(epochs), desc="Epochs", position=0):
+            self.total_epochs += 1
+            self.callback_handler.on_epoch_begin(self)
+            self.train_loss, self.train_metric = self._train_loop()
+            if self.valid_dataloader:
+                self.valid_loss, self.valid_metric = self._valid_loop()
+            else:
+                self.valid_loss, self.valid_metric = None, None
+            self.callback_handler.on_epoch_end(self)
 
     def _train_loop(self):
         self.callback_handler.on_train_begin(self)
@@ -147,16 +128,6 @@ class TSEngine(*Handles):
         self.callback_handler.on_train_end(self)
         return train_loss, train_metric
 
-    def train_step(self):
-        """Standard train step"""
-        X, y = self.split_batch()
-        # X, *y = self.batch
-        # y = y[0] if len(y) == 1 else y
-        y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
-        loss = self.loss_fn(y_logits, y)
-        metric = self.metric_fn(y_logits, y) if self.metric_fn else 0
-        return loss, metric
-
     def _valid_loop(self):
         self.callback_handler.on_valid_begin(self)
         self.set_valid_mode()
@@ -176,6 +147,14 @@ class TSEngine(*Handles):
         self.callback_handler.on_valid_end(self)
         return valid_loss, valid_metric
 
+    def train_step(self):
+        """Standard train step"""
+        X, y = self.split_batch()
+        y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
+        loss = self.loss_fn(y_logits, y)
+        metric = self.metric_fn(y_logits, y) if self.metric_fn else 0
+        return loss, metric
+
     def valid_step(self):
         """Standard valid step"""
         X, y = self.split_batch()
@@ -184,45 +163,18 @@ class TSEngine(*Handles):
         metric = self.metric_fn(y_logits, y) if self.metric_fn else 0
         return loss, metric
 
-    def train(self, epochs: int):
-        """Method for TSEngine to run train and valid loops
+    def split_batch(self):
+        X, *y = self.batch
+        y = y[0] if len(y) == 1 else y
+        return X, y
 
-        Args: epochs [int]: num of epochs to run
-        """
-        for epoch in tqdm(range(epochs), desc="Epochs", position=0):
-            self.total_epochs += 1
-            self.callback_handler.on_epoch_begin(self)
-            self.train_loss, self.train_metric = self._train_loop()
-            if self.valid_dataloader:
-                self.valid_loss, self.valid_metric = self._valid_loop()
-            else:
-                self.valid_loss, self.valid_metric = None, None
-            self.callback_handler.on_epoch_end(self)
-
-    def save_checkpoint(self, filename: str):
-        """Method to save model checkpoint
-
-        Args: filename [str]: filename in pt/pth of model, e.g. 'model_path/model.pt'
-        """
-        checkpoint = {
-            "epoch": self.total_epochs,
-            "model_state_dict": self.model.state_dict(),
-            "optimizer_state_dict": self.optimizer.state_dict(),
-            "results": self.results,
-        }
-        torch.save(checkpoint, filename)
-
-    def load_checkpoint(self, filename: str):
-        """Method to load model checkpoint
-
-        Args: file path of checkpoint to load in pt/pth format, e.g. 'model_path/model.pt'
-        """
-        checkpoint = torch.load(filename)
-        self.model.load_state_dict(checkpoint["model_state_dict"])
-        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        self.total_epochs = checkpoint["epoch"]
-        self.results = checkpoint["results"]
+    def set_train_mode(self):
+        """Method to set mode of model in _train_loop"""
         self.model.train()
+
+    def set_valid_mode(self):
+        """Method to set mode of model in _train_loop"""
+        self.model.eval()
 
     def freeze(self, layers: list[str] = None):
         """Method to change requires_grad to False for layers
@@ -264,11 +216,3 @@ class TSEngine(*Handles):
             y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
         self.model.train()
         return y_logits
-
-    def plot_loss_curve(self):
-        """Method to plot loss curve"""
-        plt.plot(self.results["train_loss"], label="Train Loss")
-        plt.plot(self.results["valid_loss"], label="Valid Loss")
-        plt.title("Loss")
-        plt.xlabel("Epochs")
-        plt.legend()
