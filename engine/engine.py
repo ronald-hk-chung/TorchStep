@@ -2,27 +2,35 @@
 Contains class torchstep for train and valid step for PyTorch Model
 """
 
-import random
 from copy import deepcopy
 from typing import Callable
 from tqdm.auto import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-from torch import nn
 from .device_handler import DeviceHandler
 from .callback_handler import CBHandler
 from .learning_rate_handler import LRHandler
 from .tensorboard_handler import TBHandler
+from .torchinfo_handler import TorchInfoHandler
+from .result_handler import ResultHandler
+from .gradient_handler import GradientHandler
+from .hook_handler import HookHandler
 
-
-Handles = [DeviceHandler, LRHandler, TBHandler, CBHandler]
+Handles = [
+    DeviceHandler,
+    LRHandler,
+    TBHandler,
+    TorchInfoHandler,
+    ResultHandler,
+    GradientHandler,
+    HookHandler,
+    CBHandler,
+]
 
 
 class TSEngine(*Handles):
-    """
-    TorchStep class contains a number of useful functions for Pytorch Model Training
-    """
+    """TorchStep class contains a number of useful functions for Pytorch Model Training"""
 
     def __init__(
         self,
@@ -46,19 +54,19 @@ class TSEngine(*Handles):
         # self.writer = None
         # self.scheduler = None
         # self.is_batch_lr_scheduler = False
-        self.clipping = None
-        self.results = {
-            "train_loss": [],
-            "train_metric": [],
-            "valid_loss": [],
-            "valid_metric": [],
-        }
+        # self.clipping = None
+        # self.results = {
+        #     "train_loss": [],
+        #     "train_metric": [],
+        #     "valid_loss": [],
+        #     "valid_metric": [],
+        # }
         # self.learning_rates = []
         self.total_epochs = 0
-        self.modules = list(self.model.named_modules())
-        self.layers = {name: layer for name, layer in self.modules[1:]}
-        self.forward_hook_handles = []
-        self.backward_hook_handles = []
+        # self.modules = list(self.model.named_modules())
+        # self.layers = {name: layer for name, layer in self.modules[1:]}
+        # self.forward_hook_handles = []
+        # self.backward_hook_handles = []
         # self.callbacks = [
         #     self.SaveResults,
         #     self.PrintResults,
@@ -93,18 +101,6 @@ class TSEngine(*Handles):
         """
         optimizer = optim[0](params=self.model.parameters(), **optim[1])
         return optimizer
-
-    @staticmethod
-    def set_seed(seed=42):
-        """Function to set random seed for torch, numpy and random
-
-        Args: seed [int]: random_seed
-        """
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        np.random.seed(seed)
-        random.seed(seed)
 
     def set_loaders(
         self,
@@ -276,268 +272,3 @@ class TSEngine(*Handles):
         plt.title("Loss")
         plt.xlabel("Epochs")
         plt.legend()
-
-    def set_clip_grad_value(self, clip_value):
-        """Method to perform Value Clipping
-        Clips gradietns element-wise so that they stay inside the [-clip_value, +clip_value]
-        Reference: https://pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_value_.html
-        Executed in GradientClipping Callback
-        Args:
-          clip_value [float]: max and min gradient value
-        """
-        self.clipping = lambda: nn.utils.clip_grad_value_(
-            self.model.parameters(), clip_value=clip_value
-        )
-
-    def set_clip_grad_norm(self, max_norm, norm_type=2):
-        """Method to perform Norm Clipping
-        Norm clipping computes the norm for all gradeints together if they were concatedated into a single vector
-        if the norm exceeds teh clipping value, teh gradients are scaled down to match the desired norm
-        Reference: https://pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_norm_.html
-        Executed in GradientClipping Callback
-
-        Args:
-          max_norm [float]: max norm of the gradients
-          norm_type [float]: type of the used p-norm. Can be 'inf' for infinity norm
-        """
-        self.clipping = lambda: nn.utils.clip_grad_norm_(
-            self.model.parameters(), max_norm=max_norm, norm_type=norm_type
-        )
-
-    def set_clip_backprop(self, clip_value):
-        """Method to set clip gradient on the fly using backward hook (register_hook)
-        clamp all grad using torch.clamp between [-clip_value, +clip_value]
-
-        Args:
-          clip_value [float]: max and min gradient value
-
-        """
-        if self.clipping is None:
-            self.clipping = []
-        for p in self.model.parameters():
-            if p.requires_grad:
-
-                def func(grad):
-                    return torch.clamp(grad, -clip_value, clip_value)
-
-                handle = p.register_hook(func)
-                self.clipping.append(handle)
-
-    def remove_clip(self):
-        """Method to remove gradient clipping in backward hook"""
-        if isinstance(self.clipping, list):
-            for handle in self.clipping:
-                handle.remove()
-        self.clipping = None
-
-    def attach_forward_hooks(self, layers_to_hook, hook_fn):
-        """Method to attach custom forward hooks
-
-        Args:
-          layers_to_hook [list]: list of layers to hook
-          hook_fn [Callable]: custom hook_fn in during forward pass
-        """
-        for name, layer in self.modules:
-            if name in layers_to_hook:
-                handle = layer.register_forward_hook(hook_fn)
-                self.forward_hook_handles.append(handle)
-
-    def attach_backward_hooks(self, layers_to_hook, hook_fn):
-        """Method to attach custom backward hooks
-
-        Args:
-          layers_to_hook [list]: list of layers to hook
-          hook_fn [Callable]: custom hook_fn in during backward pass
-        """
-        for name, layer in self.modules:
-            if name in layers_to_hook:
-                handle = layer.register_full_backward_hook(hook_fn)
-                self.backward_hook_handles.append(handle)
-
-    def remove_hooks(self):
-        """Method to remove both custom forward and backward hook"""
-        for handle in self.forward_hook_handles:
-            handle.remove()
-        self.forward_hook_handles = []
-        for handle in self.backward_hook_handles:
-            handle.remove()
-        self.backward_hook_handles = []
-
-    # class Callback:
-    #     def __init__(self):
-    #         pass
-
-    #     def on_train_begin(self):
-    #         pass
-
-    #     def on_train_end(self):
-    #         pass
-
-    #     def on_valid_begin(self):
-    #         pass
-
-    #     def on_valid_end(self):
-    #         pass
-
-    #     def on_epoch_begin(self):
-    #         pass
-
-    #     def on_epoch_end(self):
-    #         pass
-
-    #     def on_batch_begin(self):
-    #         pass
-
-    #     def on_batch_end(self):
-    #         pass
-
-    #     def on_loss_begin(self):
-    #         pass
-
-    #     def on_loss_end(self):
-    #         pass
-
-    #     def on_step_begin(self):
-    #         pass
-
-    #     def on_step_end(self):
-    #         pass
-
-    # class callback_handler:
-    #     def on_train_begin(self):
-    #         for callback in self.callbacks:
-    #             callback.on_train_begin(self)
-
-    #     def on_train_end(self):
-    #         for callback in self.callbacks:
-    #             callback.on_train_end(self)
-
-    #     def on_valid_begin(self):
-    #         for callback in self.callbacks:
-    #             callback.on_valid_begin(self)
-
-    #     def on_valid_end(self):
-    #         for callback in self.callbacks:
-    #             callback.on_valid_end(self)
-
-    #     def on_epoch_begin(self):
-    #         for callback in self.callbacks:
-    #             callback.on_epoch_begin(self)
-
-    #     def on_epoch_end(self):
-    #         for callback in self.callbacks:
-    #             callback.on_epoch_end(self)
-
-    #     def on_batch_begin(self):
-    #         for callback in self.callbacks:
-    #             callback.on_batch_begin(self)
-
-    #     def on_batch_end(self):
-    #         for callback in self.callbacks:
-    #             callback.on_batch_end(self)
-
-    #     def on_loss_begin(self):
-    #         for callback in self.callbacks:
-    #             callback.on_loss_begin(self)
-
-    #     def on_loss_end(self):
-    #         for callback in self.callbacks:
-    #             callback.on_loss_end(self)
-
-    #     def on_step_begin(self):
-    #         for callback in self.callbacks:
-    #             callback.on_step_begin(self)
-
-    #     def on_step_end(self):
-    #         for callback in self.callbacks:
-    #             callback.on_step_end(self)
-
-    # class PrintResults(Callback):
-    #     def on_epoch_end(self):
-    #         print(
-    #             f"Epoch: {self.total_epochs} "
-    #             + f"| LR: {np.array(self.learning_rates).mean():.1E} "
-    #             + f"| train_loss: {np.around(self.train_loss, 3)} "
-    #             + (
-    #                 f"| valid_loss: {np.around(self.valid_loss, 3)} "
-    #                 if self.valid_dataloader
-    #                 else ""
-    #             )
-    #         )
-    #         if self.metric_fn:
-    #             if self.metric_keys:
-    #                 train_metric = dict(
-    #                     zip(self.metric_keys, np.around(self.train_metric, 3))
-    #                 )
-    #                 valid_metric = (
-    #                     dict(zip(self.metric_keys, np.around(self.valid_metric, 3)))
-    #                     if self.valid_dataloader
-    #                     else None
-    #                 )
-    #             else:
-    #                 train_metric = np.around(self.train_metric, 3)
-    #                 valid_metric = (
-    #                     np.around(self.valid_metric, 3)
-    #                     if self.valid_dataloader
-    #                     else None
-    #                 )
-    #             print(f"train_metric: {train_metric}")
-    #             if self.valid_dataloader:
-    #                 print(f"valid_metric: {valid_metric}")
-
-    # class TBWriter(Callback):
-    #     def on_epoch_end(self):
-    #         if self.writer:
-    #             loss_scalars = {
-    #                 "train_loss": self.train_loss,
-    #                 "valid_loss": self.valid_loss,
-    #             }
-    #             self.writer.add_scalars(
-    #                 main_tag="loss",
-    #                 tag_scalar_dict=loss_scalars,
-    #                 global_step=self.total_epochs,
-    #             )
-
-    #             for i, train_metric in enumerate(self.train_metric):
-    #                 acc_scalars = {
-    #                     "train_metric": self.train_metric[i],
-    #                     "valid_metric": self.valid_metric[i],
-    #                 }
-    #                 self.writer.add_scalars(
-    #                     main_tag=(
-    #                         self.metric_keys[i] if self.metric_keys else f"metric_{i}"
-    #                     ),
-    #                     tag_scalar_dict=acc_scalars,
-    #                     global_step=self.total_epochs,
-    #                 )
-    #             self.writer.close()
-
-    # class SaveResults(Callback):
-    #     def on_epoch_end(self):
-    #         self.results["train_loss"].append(self.train_loss)
-    #         self.results["train_metric"].append(self.train_metric)
-    #         self.results["valid_loss"].append(self.valid_loss)
-    #         self.results["valid_metric"].append(self.valid_metric)
-
-    # class LearningRateScheduler(Callback):
-    #     def on_batch_end(self):
-    #         if self.scheduler and self.is_batch_lr_scheduler:
-    #             self.scheduler.step()
-    #         self.learning_rates.append(
-    #             self.optimizer.state_dict()["param_groups"][0]["lr"]
-    #         )
-
-    #     def on_epoch_end(self):
-    #         self.learning_rates = []
-    #         if self.scheduler and not self.is_batch_lr_scheduler:
-    #             if isinstance(
-    #                 self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau
-    #             ):
-    #                 self.scheduler.step(self.valid_loss)
-    #             else:
-    #                 self.scheduler.step()
-
-    # class GradientClipping(Callback):
-    #     def on_step_begin(self):
-    #         if callable(self.clipping):
-    #             self.clipping()

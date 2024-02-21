@@ -1,7 +1,7 @@
 import torchinfo
 import torch
 
-class torchinfo_handler:
+class TorchInfoHandler:
     def model_info(
         self,
         col_names: list[str] = ["input_size", "output_size", "num_params", "trainable"],

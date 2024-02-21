@@ -3,6 +3,7 @@ import numpy as np
 from torch.optim.lr_scheduler import LambdaLR
 from copy import deepcopy
 import matplotlib.pyplot as plt
+from .callback_handler import Callback
 
 
 class LRHandler:
@@ -12,6 +13,7 @@ class LRHandler:
         self.learning_rates = []
         self.scheduler = None
         self.is_batch_lr_scheduler = False
+        self.LearningRateScheduler = LearningRateScheduler
 
     def set_lr_scheduler(
         self, scheduler: torch.optim.lr_scheduler, is_batch_lr_scheduler: bool = False
@@ -176,3 +178,18 @@ class LRHandler:
         self.train(epochs=epochs)
         self.set_lr_scheduler(scheduler=None)
         self.optimizer = pervious_optimizer
+
+
+class LearningRateScheduler(Callback):
+    def on_batch_end(self):
+        if self.scheduler and self.is_batch_lr_scheduler:
+            self.scheduler.step()
+        self.learning_rates.append(self.optimizer.state_dict()["param_groups"][0]["lr"])
+
+    def on_epoch_end(self):
+        self.learning_rates = []
+        if self.scheduler and not self.is_batch_lr_scheduler:
+            if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                self.scheduler.step(self.valid_loss)
+            else:
+                self.scheduler.step()
