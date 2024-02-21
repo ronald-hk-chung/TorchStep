@@ -2,24 +2,24 @@
 Contains class torchstep for train and valid step for PyTorch Model
 """
 
-import datetime
 import random
 from copy import deepcopy
-from tqdm.auto import tqdm
 from typing import Any, Callable
+from tqdm.auto import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from torch import nn
-from torch.utils.tensorboard import SummaryWriter
-import torchinfo
+from .device_handler import device_handler
 from .callback_handler import callback_handler
 from .learning_rate_handler import learning_rate_handler
+from .tensorboard_handler import tensorboard_handler
 
-EngineClass = [learning_rate_handler, callback_handler]
+
+ENGINES = [learning_rate_handler, callback_handler, tensorboard_handler, device_handler]
 
 
-class TSEngine(*EngineClass):
+class TSEngine(*ENGINES):
     """
     TorchStep class contains a number of useful functions for Pytorch Model Training
     """
@@ -33,16 +33,17 @@ class TSEngine(*EngineClass):
         train_dataloader: torch.utils.data.DataLoader = None,
         valid_dataloader: torch.utils.data.DataLoader = None,
     ):
-        self.model = model
+
+        self.model = deepcopy(model)
         self.optimizer = self.set_optimizer(optim)
         self.loss_fn = loss_fn
         self.metric_fn = metric_fn
         self.metric_keys = None
         self.train_dataloader = train_dataloader
         self.valid_dataloader = valid_dataloader
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
-        self.writer = None
+        # self.writer = None
         # self.scheduler = None
         # self.is_batch_lr_scheduler = False
         self.clipping = None
@@ -70,7 +71,10 @@ class TSEngine(*EngineClass):
         self.train_metric = None
         self.valid_loss = None
         self.valid_metric = None
-        super().__init__()
+        self.loss = None
+        self.metric = None
+        for engine in ENGINES:
+            engine.__init__(self)
 
     def set_train_mode(self):
         """Method to set mode of model in _train_loop"""
@@ -102,16 +106,6 @@ class TSEngine(*EngineClass):
         np.random.seed(seed)
         random.seed(seed)
 
-    def set_tensorboard(self, name: str, folder: str = "runs"):
-        """Method to set TSEngine tensorboard
-
-        Args:
-          name [str]: name of project
-          folder [str]: name of folder to run tensorboard logs, Defaults to 'runs'
-        """
-        suffix = datetime.datetime.now().strftime("%Y%m%d")
-        self.writer = SummaryWriter(f"{folder}/{name}_{suffix}")
-
     def set_loaders(
         self,
         train_dataloader: torch.utils.data.DataLoader,
@@ -124,6 +118,11 @@ class TSEngine(*EngineClass):
         self.train_dataloader = train_dataloader
         self.valid_dataloader = valid_dataloader
 
+    def split_batch(self):
+        X, *y = self.batch
+        y = y[0] if len(y) == 1 else y
+        return X, y
+
     def _train_loop(self):
         self.callback_handler.on_train_begin(self)
         self.set_train_mode()
@@ -132,13 +131,13 @@ class TSEngine(*EngineClass):
             self.callback_handler.on_batch_begin(self)
             self.batch = self.to_device(batch)
             self.callback_handler.on_loss_begin(self)
-            loss, metric = self.train_step()
-            train_loss += np.array(loss.item())
+            self.loss, self.metric = self.train_step()
+            train_loss += np.array(self.loss.item())
             train_metric += np.array(
-                list(metric.values()) if type(metric) is dict else metric
+                list(self.metric.values()) if type(self.metric) is dict else self.metric
             )
             self.callback_handler.on_loss_end(self)
-            loss.backward()
+            self.loss.backward()
             self.callback_handler.on_step_begin(self)
             self.optimizer.step()
             self.callback_handler.on_step_end(self)
@@ -152,8 +151,9 @@ class TSEngine(*EngineClass):
 
     def train_step(self):
         """Standard train step"""
-        X, *y = self.batch
-        y = y[0] if len(y) == 1 else y
+        X, y = self.split_batch()
+        # X, *y = self.batch
+        # y = y[0] if len(y) == 1 else y
         y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
         loss = self.loss_fn(y_logits, y)
         metric = self.metric_fn(y_logits, y) if self.metric_fn else 0
@@ -178,8 +178,7 @@ class TSEngine(*EngineClass):
 
     def valid_step(self):
         """Standard valid step"""
-        X, *y = self.batch
-        y = y[0] if len(y) == 1 else y
+        X, y = self.split_batch()
         y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
         loss = self.loss_fn(y_logits, y)
         metric = self.metric_fn(y_logits, y) if self.metric_fn else 0
@@ -199,19 +198,6 @@ class TSEngine(*EngineClass):
             else:
                 self.valid_loss, self.valid_metric = None, None
             self.callback_handler.on_epoch_end(self)
-
-    def to_device(self, X: Any):
-        """Method to put variable X to gpu if available"""
-        if type(X) is list:
-            return [self.to_device(x) for x in X]
-        elif type(X) is tuple:
-            return tuple(self.to_device(x) for x in X)
-        elif type(X) is dict:
-            return {k: self.to_device(x) for k, x in X.items()}
-        elif torch.is_tensor(X):
-            return X.to(self.device)
-        else:
-            return X
 
     def save_checkpoint(self, filename: str):
         """Method to save model checkpoint
@@ -237,41 +223,6 @@ class TSEngine(*EngineClass):
         self.total_epochs = checkpoint["epoch"]
         self.results = checkpoint["results"]
         self.model.train()
-
-    def model_info(
-        self,
-        col_names: list[str] = ["input_size", "output_size", "num_params", "trainable"],
-        col_width: int = 20,
-        row_settings: list[str] = ["var_names"],
-    ):
-        """Method to utilise torchinfo to shwo model summary
-        Reference: https://github.com/TylerYep/torchinfo
-
-        Args:
-          col_names (Iterable[str]): Specify which columns to show in the output
-            Currently supported: ("input_size",
-                                  "output_size",
-                                  "num_params",
-                                  "params_percent",
-                                  "kernel_size",
-                                  "mult_adds",
-                                  "trainable")
-            Default: ["input_size", "output_size", "num_params", "trainable"]
-
-          col_width (int): Width of each column. Default: 20
-        """
-        X, *y = next(iter(self.train_dataloader))
-        X = self.to_device(X)
-        print(
-            torchinfo.summary(
-                model=self.model,
-                input_data=list(X),
-                verbose=0,
-                col_names=col_names,
-                col_width=col_width,
-                row_settings=row_settings,
-            )
-        )
 
     def freeze(self, layers: list[str] = None):
         """Method to change requires_grad to False for layers
@@ -313,13 +264,6 @@ class TSEngine(*EngineClass):
             y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
         self.model.train()
         return y_logits
-
-    def add_graph(self):
-        """Method to add graph for TensorBoard"""
-        if self.train_dataloader and self.writer:
-            X, *y = next(iter(self.train_dataloader))
-            X = self.to_device(X)
-            self.writer.add_graph(self.model, X)
 
     def plot_loss_curve(self):
         """Method to plot loss curve"""

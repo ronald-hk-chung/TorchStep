@@ -42,8 +42,6 @@ class Callback:
         pass
 
 
-callbacks = []
-
 class callback_handler:
     def __init__(self):
         self.callback_handler = CallbackHandler
