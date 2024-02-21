@@ -91,7 +91,7 @@ class LRHandler:
         scheduler = LambdaLR(self.optimizer, lr_lambda=lr_fn)
         tracking = {"loss": [], "lr": []}
         iteration = 0
-        pbar = tqdm(total=num_iter+1)
+        pbar = tqdm(total=num_iter)
         while iteration < num_iter:
             for batch in self.train_dataloader:
                 self.batch = self.to_device(batch)
