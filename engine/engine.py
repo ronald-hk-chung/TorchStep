@@ -4,22 +4,22 @@ Contains class torchstep for train and valid step for PyTorch Model
 
 import random
 from copy import deepcopy
-from typing import Any, Callable
+from typing import Callable
 from tqdm.auto import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from torch import nn
-from .device_handler import device_handler
-from .callback_handler import callback_handler
-from .learning_rate_handler import learning_rate_handler
-from .tensorboard_handler import tensorboard_handler
+from .device_handler import DeviceHandler
+from .callback_handler import CBHandler
+from .learning_rate_handler import LRHandler
+from .tensorboard_handler import TBHandler
 
 
-ENGINES = [learning_rate_handler, callback_handler, tensorboard_handler, device_handler]
+Handles = [DeviceHandler, LRHandler, TBHandler, CBHandler]
 
 
-class TSEngine(*ENGINES):
+class TSEngine(*Handles):
     """
     TorchStep class contains a number of useful functions for Pytorch Model Training
     """
@@ -73,8 +73,8 @@ class TSEngine(*ENGINES):
         self.valid_metric = None
         self.loss = None
         self.metric = None
-        for engine in ENGINES:
-            engine.__init__(self)
+        for handle in Handles:
+            handle.__init__(self)
 
     def set_train_mode(self):
         """Method to set mode of model in _train_loop"""
@@ -145,7 +145,9 @@ class TSEngine(*ENGINES):
             self.callback_handler.on_batch_end(self)
         train_loss /= len(self.train_dataloader)
         train_metric /= len(self.train_dataloader)
-        self.metric_keys = list(metric.keys()) if type(metric) is dict else None
+        self.metric_keys = (
+            list(self.metric.keys()) if type(self.metric) is dict else None
+        )
         self.callback_handler.on_train_end(self)
         return train_loss, train_metric
 
@@ -166,10 +168,12 @@ class TSEngine(*ENGINES):
         with torch.inference_mode():
             for batch in tqdm(self.valid_dataloader, desc="Valid Step", leave=False):
                 self.batch = self.to_device(batch)
-                loss, metric = self.valid_step()
-                valid_loss += np.array(loss.item())
+                self.loss, self.metric = self.valid_step()
+                valid_loss += np.array(self.loss.item())
                 valid_metric += np.array(
-                    list(metric.values()) if type(metric) is dict else metric
+                    list(self.metric.values())
+                    if type(self.metric) is dict
+                    else self.metric
                 )
         valid_loss /= len(self.valid_dataloader)
         valid_metric /= len(self.valid_dataloader)

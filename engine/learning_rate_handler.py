@@ -1,9 +1,13 @@
 import torch
 import numpy as np
 from torch.optim.lr_scheduler import LambdaLR
+from copy import deepcopy
+import matplotlib.pyplot as plt
 
 
-class learning_rate_handler:
+class LRHandler:
+    """Class for handling Learning Rates"""
+
     def __init__(self):
         self.learning_rates = []
         self.scheduler = None

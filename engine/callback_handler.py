@@ -1,5 +1,5 @@
 import numpy as np
-
+import torch
 
 class Callback:
     def __init__(self):
@@ -42,9 +42,11 @@ class Callback:
         pass
 
 
-class callback_handler:
+class CBHandler:
+    """Class for handling Callbacks"""
+
     def __init__(self):
-        self.callback_handler = CallbackHandler
+        self.callback_handler = callback_handler
         self.PrintResults = PrintResults
         self.TBWriter = TBWriter
         self.SaveResults = SaveResults
@@ -59,7 +61,7 @@ class callback_handler:
         ]
 
 
-class CallbackHandler:
+class callback_handler:
     def on_train_begin(self):
         for callback in self.callbacks:
             callback.on_train_begin(self)

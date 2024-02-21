@@ -1,8 +1,10 @@
-from torch.utils.tensorboard import SummaryWriter
 import datetime
+from torch.utils.tensorboard import SummaryWriter
 
 
-class tensorboard_handler:
+class TBHandler:
+    """Class for handling TensorBoard"""
+
     def __init__(self):
         self.writer = None
 
