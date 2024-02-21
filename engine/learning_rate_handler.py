@@ -91,7 +91,7 @@ class LRHandler:
         scheduler = LambdaLR(self.optimizer, lr_lambda=lr_fn)
         tracking = {"loss": [], "lr": []}
         iteration = 0
-        pbar = tqdm(total=num_iter + 1)
+        pbar = tqdm(total=num_iter+1)
         while iteration < num_iter:
             for batch in self.train_dataloader:
                 self.batch = self.to_device(batch)
@@ -106,6 +106,7 @@ class LRHandler:
                     smoothed_loss = alpha * loss.item() + (1 - alpha) * prev_loss
                     tracking["loss"].append(smoothed_loss)
                 iteration += 1
+                pbar.update(1)
                 if iteration == num_iter:
                     break
                 self.optimizer.step()
