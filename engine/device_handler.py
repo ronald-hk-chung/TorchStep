@@ -20,14 +20,4 @@ class DeviceHandler:
     """Class for handling device management"""
 
     def to_device(self, X: Any):
-        """Method to put variable X to gpu if available"""
-        if isinstance(X, list):
-            return [self.to_device(x) for x in X]
-        elif isinstance(X, tuple):
-            return tuple(self.to_device(x) for x in X)
-        elif isinstance(X, dict):
-            return {k: self.to_device(x) for k, x in X.items()}
-        elif torch.is_tensor(X):
-            return X.to(self.device)
-        else:
-            return X
+        return to_device(X, self.device)
