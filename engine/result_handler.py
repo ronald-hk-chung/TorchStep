@@ -78,8 +78,8 @@ class PrintResults(Callback):
         )
 
     def on_valid_loss_end(self):
-        loss = np.around(self.train_loss / (self.batch_num + 1), 3)
-        metric = np.around(self.train_metric / (self.batch_num + 1), 3)
+        loss = np.around(self.valid_loss / (self.batch_num + 1), 3)
+        metric = np.around(self.valid_metric / (self.batch_num + 1), 3)
         if self.metric_keys:
             metric = dict(zip(self.metric_keys, metric))
         print(
