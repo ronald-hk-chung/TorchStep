@@ -54,7 +54,6 @@ class PrintResults(Callback):
                     else np.around(self.valid_metric, 3)
                 )
                 print(f"valid_metric: {valid_metric}")
-                
 
     def on_loss_begin(self):
         if isinstance(self.metric, dict):
@@ -74,7 +73,8 @@ class PrintResults(Callback):
         if self.metric_keys:
             metric = dict(zip(self.metric_keys, metric))
         print(
-            f"\r Train Step {self.batch_num+1} / {len(self.train_dataloader)} | Loss: {loss} | Metric: {metric}"
+            f"\r Train Step {self.batch_num+1} / {len(self.train_dataloader)} | Loss: {loss} | Metric: {metric}",
+            end="",
         )
 
     def on_valid_loss_end(self):
@@ -83,7 +83,8 @@ class PrintResults(Callback):
         if self.metric_keys:
             metric = dict(zip(self.metric_keys, metric))
         print(
-            f"\r Valid Step {self.batch_num+1} / {len(self.valid_dataloader)} | Loss: {loss} | Metric: {metric}"
+            f"\r Valid Step {self.batch_num+1} / {len(self.valid_dataloader)} | Loss: {loss} | Metric: {metric}",
+            end="",
         )
 
 
