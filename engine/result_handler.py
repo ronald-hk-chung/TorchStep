@@ -2,12 +2,16 @@ import numpy as np
 from .callback_handler import Callback
 import matplotlib.pyplot as plt
 
+
 class ResultHandler:
     """Class for handling Printing and Saving Results"""
 
     def __init__(self):
         self.PrintResults = PrintResults
         self.SaveResults = SaveResults
+        self.metric_keys = None
+        self.progress = None
+        self.batch_num = None
         self.results = {
             "train_loss": [],
             "train_metric": [],
@@ -27,7 +31,7 @@ class ResultHandler:
 class PrintResults(Callback):
     def on_epoch_end(self):
         print(
-            f"Epoch: {self.total_epochs} "
+            f"\r Epoch: {self.total_epochs} "
             + f"| LR: {np.array(self.learning_rates).mean():.1E} "
             + f"| train_loss: {np.around(self.train_loss, 3)} "
             + (
@@ -37,23 +41,50 @@ class PrintResults(Callback):
             )
         )
         if self.metric_fn:
-            if self.metric_keys:
-                train_metric = dict(
-                    zip(self.metric_keys, np.around(self.train_metric, 3))
-                )
-                valid_metric = (
-                    dict(zip(self.metric_keys, np.around(self.valid_metric, 3)))
-                    if self.valid_dataloader
-                    else None
-                )
-            else:
-                train_metric = np.around(self.train_metric, 3)
-                valid_metric = (
-                    np.around(self.valid_metric, 3) if self.valid_dataloader else None
-                )
+            train_metric = (
+                dict(zip(self.metric_keys, np.around(self.train_metric, 3)))
+                if self.metric_keys
+                else np.around(self.train_metric, 3)
+            )
             print(f"train_metric: {train_metric}")
             if self.valid_dataloader:
+                valid_metric = (
+                    dict(zip(self.metric_keys, np.around(self.valid_metric, 3)))
+                    if self.metric_keys
+                    else np.around(self.valid_metric, 3)
+                )
                 print(f"valid_metric: {valid_metric}")
+                
+
+    def on_loss_begin(self):
+        if isinstance(self.metric, dict):
+            if self.metric_keys is None:
+                self.metric_keys = list(self.metric.keys())
+            self.metric = list(self.metric.values())
+
+    def on_valid_loss_begin(self):
+        if isinstance(self.metric, dict):
+            if self.metric_keys is None:
+                self.metric_keys = list(self.metric.keys())
+            self.metric = list(self.metric.values())
+
+    def on_loss_end(self):
+        loss = np.arraY(self.train_loss / (self.batch_num + 1), 3)
+        metric = np.array(self.train_metric / (self.batch_num + 1), 3)
+        if self.metric_keys:
+            metric = dict(zip(self.metric_keys, metric))
+        print(
+            f"\r Train Step {self.batch_num+1} / {len(self.train_dataloader)} | Loss: {loss} | Metric: {metric}"
+        )
+
+    def on_valid_loss_end(self):
+        loss = np.arraY(self.train_loss / (self.batch_num + 1), 3)
+        metric = np.array(self.train_metric / (self.batch_num + 1), 3)
+        if self.metric_keys:
+            metric = dict(zip(self.metric_keys, metric))
+        print(
+            f"\r Valid Step {self.batch_num+1} / {len(self.valid_dataloader)} | Loss: {loss} | Metric: {metric}"
+        )
 
 
 class SaveResults(Callback):

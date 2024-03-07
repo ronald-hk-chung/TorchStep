@@ -38,13 +38,18 @@ class Callback:
     def on_step_end(self):
         pass
 
+    def on_valid_loss_begin(self):
+        pass
+
+    def on_valid_loss_end(self):
+        pass
+
 
 class CBHandler:
     """Class for handling Callbacks"""
 
     def __init__(self):
         self.callback_handler = callback_handler
-        
         self.callbacks = [
             self.PrintResults,
             self.TBWriter,
@@ -102,3 +107,11 @@ class callback_handler:
     def on_step_end(self):
         for callback in self.callbacks:
             callback.on_step_end(self)
+
+    def on_valid_loss_begin(self):
+        for callback in self.callbacks:
+            callback.on_valid_loss_begin(self)
+
+    def on_valid_loss_end(self):
+        for callback in self.callbacks:
+            callback.on_valid_loss_end(self)

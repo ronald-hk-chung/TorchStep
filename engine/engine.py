@@ -2,7 +2,6 @@
 Contains class torchstep for train and valid step for PyTorch Model
 """
 
-from copy import deepcopy
 from typing import Callable
 from tqdm.auto import tqdm
 import numpy as np
@@ -31,7 +30,16 @@ Handles = [
 
 
 class TSEngine(*Handles):
-    """TorchStep class contains a number of useful functions for Pytorch Model Training"""
+    """TorchStep class contains a number of useful functions for Pytorch Model Training
+
+    Args:
+        model [nn.Module]: torch model
+        optim [tuple[Optimizer, dict[str, float]]]: Tuple(Optimizer, params dict), example: optim=(torch.optim.Adam, {'lr': 1e-3})
+        loss_fn [Callable]: loss function
+        metric_fn [Callable]: metric function, Default to None
+        train_dataloader [DataLoader]: train dataloader, Default to None, can be set using set_loaders()
+        valid_dataloader [DataLoader]: valid dataloader, Default to None, can be set using set_loaders()
+    """
 
     def __init__(
         self,
@@ -43,11 +51,10 @@ class TSEngine(*Handles):
         valid_dataloader: torch.utils.data.DataLoader = None,
     ):
 
-        self.model = deepcopy(model)
-        self.optimizer = self.set_optimizer(optim)
+        self.model = model
+        self.optimizer = optim[0](params=self.model.parameters(), **optim[1])
         self.loss_fn = loss_fn
         self.metric_fn = metric_fn
-        self.metric_keys = None
         self.train_dataloader = train_dataloader
         self.valid_dataloader = valid_dataloader
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -70,8 +77,7 @@ class TSEngine(*Handles):
           optim [tuple[torch.optim.Opimizer, dictionary of parameters]]
           Example usage: optim=(torch.optim.Adam, {'lr': 1e-3})
         """
-        optimizer = optim[0](params=self.model.parameters(), **optim[1])
-        return optimizer
+        self.optimizer = optim[0](params=self.model.parameters(), **optim[1])
 
     def set_loaders(
         self,
@@ -93,26 +99,22 @@ class TSEngine(*Handles):
         for epoch in tqdm(range(epochs), desc="Epochs", position=0):
             self.total_epochs += 1
             self.callback_handler.on_epoch_begin(self)
-            self.train_loss, self.train_metric = self._train_loop()
+            self._train_loop()
             if self.valid_dataloader:
-                self.valid_loss, self.valid_metric = self._valid_loop()
-            else:
-                self.valid_loss, self.valid_metric = None, None
+                self._valid_loop()
             self.callback_handler.on_epoch_end(self)
 
     def _train_loop(self):
         self.callback_handler.on_train_begin(self)
         self.set_train_mode()
-        train_loss, train_metric = 0, 0
-        for batch in tqdm(self.train_dataloader, desc="Train Step", leave=False):
+        self.train_loss, self.train_metric = 0, 0
+        for self.batch_num, batch in enumerate(self.train_dataloader):
             self.callback_handler.on_batch_begin(self)
             self.batch = self.to_device(batch)
-            self.callback_handler.on_loss_begin(self)
             self.loss, self.metric = self.train_step()
-            train_loss += np.array(self.loss.item())
-            train_metric += np.array(
-                list(self.metric.values()) if type(self.metric) is dict else self.metric
-            )
+            self.callback_handler.on_loss_begin(self)
+            self.train_loss += np.array(self.loss.item())
+            self.train_metric += np.array(self.metric)
             self.callback_handler.on_loss_end(self)
             self.loss.backward()
             self.callback_handler.on_step_begin(self)
@@ -120,32 +122,25 @@ class TSEngine(*Handles):
             self.callback_handler.on_step_end(self)
             self.optimizer.zero_grad()
             self.callback_handler.on_batch_end(self)
-        train_loss /= len(self.train_dataloader)
-        train_metric /= len(self.train_dataloader)
-        self.metric_keys = (
-            list(self.metric.keys()) if type(self.metric) is dict else None
-        )
+        self.train_loss /= len(self.train_dataloader)
+        self.train_metric /= len(self.train_dataloader)
         self.callback_handler.on_train_end(self)
-        return train_loss, train_metric
 
     def _valid_loop(self):
         self.callback_handler.on_valid_begin(self)
         self.set_valid_mode()
-        valid_loss, valid_metric = 0, 0
+        self.valid_loss, self.valid_metric = 0, 0
         with torch.inference_mode():
-            for batch in tqdm(self.valid_dataloader, desc="Valid Step", leave=False):
+            for self.batch_num, batch in enumerate(self.valid_dataloader):
                 self.batch = self.to_device(batch)
                 self.loss, self.metric = self.valid_step()
-                valid_loss += np.array(self.loss.item())
-                valid_metric += np.array(
-                    list(self.metric.values())
-                    if type(self.metric) is dict
-                    else self.metric
-                )
-        valid_loss /= len(self.valid_dataloader)
-        valid_metric /= len(self.valid_dataloader)
+                self.callback_handler.on_valid_loss_begin(self)
+                self.valid_loss += np.array(self.loss.item())
+                self.valid_metric += np.array(self.metric)
+                self.callback_handler.on_valid_loss_end(self)
+        self.valid_loss /= len(self.valid_dataloader)
+        self.valid_metric /= len(self.valid_dataloader)
         self.callback_handler.on_valid_end(self)
-        return valid_loss, valid_metric
 
     def train_step(self):
         """Standard train step"""
