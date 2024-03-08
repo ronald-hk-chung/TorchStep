@@ -54,7 +54,7 @@ class PrintResults(Callback):
                     else np.around(self.valid_metric, 3)
                 )
                 print(f"valid_metric: {valid_metric}")
-        print('-'*100)
+        print("-" * 100)
 
     def on_loss_begin(self):
         if isinstance(self.metric, dict):
@@ -69,22 +69,28 @@ class PrintResults(Callback):
             self.metric = list(self.metric.values())
 
     def on_loss_end(self):
-        loss = np.around(self.train_loss / (self.batch_num + 1), 3)
-        metric = np.around(self.train_metric / (self.batch_num + 1), 3)
+        loss = np.around(self.loss.item(), 3)
+        metric = np.around(self.metric, 3)
+        avg_loss = np.around(self.train_loss / (self.batch_num + 1), 3)
+        avg_metric = np.around(self.train_metric / (self.batch_num + 1), 3)
         if self.metric_keys:
             metric = dict(zip(self.metric_keys, metric))
+            avg_metric = dict(zip(self.metric_keys, avg_metric))
         print(
-            f"\r Train Step {self.batch_num+1} / {len(self.train_dataloader)} | Loss: {loss} | Metric: {metric}",
+            f"\r Train Step {self.batch_num+1}/{len(self.train_dataloader)} | Loss: {loss} / {avg_loss}   | Metric: {metric} / {avg_metric}",
             end="",
         )
 
     def on_valid_loss_end(self):
-        loss = np.around(self.valid_loss / (self.batch_num + 1), 3)
-        metric = np.around(self.valid_metric / (self.batch_num + 1), 3)
+        loss = np.around(self.loss.item(), 3)
+        metric = np.around(self.metric, 3)
+        avg_loss = np.around(self.valid_loss / (self.batch_num + 1), 3)
+        avg_metric = np.around(self.valid_metric / (self.batch_num + 1), 3)
         if self.metric_keys:
             metric = dict(zip(self.metric_keys, metric))
+            avg_metric = dict(zip(self.metric_keys, avg_metric))
         print(
-            f"\r Valid Step {self.batch_num+1} / {len(self.valid_dataloader)} | Loss: {loss} | Metric: {metric}",
+            f"\r Valid Step {self.batch_num+1}/{len(self.valid_dataloader)} | Loss: {loss} / {avg_loss}   | Metric: {metric} / {avg_metric}",
             end="",
         )
 
