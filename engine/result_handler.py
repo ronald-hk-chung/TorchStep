@@ -31,7 +31,7 @@ class ResultHandler:
 class PrintResults(Callback):
     def on_epoch_end(self):
         print(
-            f"\r Epoch: {self.total_epochs} "
+            f"\rEpoch: {self.total_epochs} "
             + f"| LR: {np.array(self.learning_rates).mean():.1E} "
             + f"| train_loss: {np.around(self.train_loss, 3)} "
             + (
