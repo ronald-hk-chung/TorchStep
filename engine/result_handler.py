@@ -77,7 +77,7 @@ class PrintResults(Callback):
             metric = dict(zip(self.metric_keys, metric))
             avg_metric = dict(zip(self.metric_keys, avg_metric))
         print(
-            f"\r Train Step {self.batch_num+1}/{len(self.train_dataloader)} | Loss: {loss} / {avg_loss}   | Metric: {metric} / {avg_metric}",
+            f"\rTrain Step {self.batch_num+1}/{len(self.train_dataloader)} | Loss(Cur/Avg): {loss} / {avg_loss} | Metric(Cur/Avg): {metric} / {avg_metric}",
             end="",
         )
 
@@ -90,7 +90,7 @@ class PrintResults(Callback):
             metric = dict(zip(self.metric_keys, metric))
             avg_metric = dict(zip(self.metric_keys, avg_metric))
         print(
-            f"\r Valid Step {self.batch_num+1}/{len(self.valid_dataloader)} | Loss: {loss} / {avg_loss}   | Metric: {metric} / {avg_metric}",
+            f"\rValid Step {self.batch_num+1}/{len(self.valid_dataloader)} | Loss(Cur/Avg): {loss} / {avg_loss} | Metric(Cur/Avg): {metric} / {avg_metric}",
             end="",
         )
 
