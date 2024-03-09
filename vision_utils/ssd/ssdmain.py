@@ -1,6 +1,6 @@
 import torch.nn as nn
 from .multibox import MultiBoxLoss
-from ssd_resnetbackbone import SSD300
+from .ssd_resnetbackbone import SSD300
 
 class SSD(nn.Module):
     def __init__(self, num_classes):
