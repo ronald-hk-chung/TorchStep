@@ -41,11 +41,13 @@ class TSEngine(*Handles):
 
     def __init__(self,
                  model: torch.nn.Module,
+                 optimizer: torch.optim.Optimizer,
                  loss_fn: Callable,
                  metric_fn: Callable = None,
                  train_dataloader: torch.utils.data.DataLoader = None,
                  valid_dataloader: torch.utils.data.DataLoader = None):
         self.model = model
+        self.optimizer = optimizer
         self.loss_fn = loss_fn
         self.metric_fn = metric_fn
         self.train_dataloader = train_dataloader

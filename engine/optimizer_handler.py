@@ -11,19 +11,11 @@ class OptimizerHandler:
     """Class for handling Learning Rates"""
 
     def __init__(self):
-        self.optimizer = self.configure_optimizer()
         self.learning_rates = []
         self.scheduler = None
         self.is_batch_lr_scheduler = False
         self.LearningRateScheduler = LearningRateScheduler
         
-    def configure_optimizer(self):
-        """Template Method to configure optimizier
-        Return:
-            optimizer: constructed optimizer
-        """
-        raise Exception('Need to define configure_optimizer() for constructed optimizer')
-
     def set_lr_scheduler(
         self, scheduler: torch.optim.lr_scheduler, is_batch_lr_scheduler: bool = False
     ):
