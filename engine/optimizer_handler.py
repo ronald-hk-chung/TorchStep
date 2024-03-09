@@ -7,14 +7,22 @@ import matplotlib.pyplot as plt
 from .callback_handler import Callback
 
 
-class LRHandler:
+class OptimizerHandler:
     """Class for handling Learning Rates"""
 
     def __init__(self):
+        self.optimizer = self.configure_optimizer()
         self.learning_rates = []
         self.scheduler = None
         self.is_batch_lr_scheduler = False
         self.LearningRateScheduler = LearningRateScheduler
+        
+    def configure_optimizer(self):
+        """Template Method to configure optimizier
+        Return:
+            optimizer: constructed optimizer
+        """
+        raise Exception('Need to define configure_optimizer() for constructed optimizer')
 
     def set_lr_scheduler(
         self, scheduler: torch.optim.lr_scheduler, is_batch_lr_scheduler: bool = False
@@ -27,25 +35,6 @@ class LRHandler:
         """
         self.scheduler = scheduler
         self.is_batch_lr_scheduler = is_batch_lr_scheduler
-
-    @staticmethod
-    def make_lr_fn(
-        start_lr: float, end_lr: float, num_iter: int, step_mode: str = "exp"
-    ):
-        """Method to generate learning rate function (internal only)"""
-        if step_mode == "linear":
-            factor = (end_lr / start_lr - 1) / num_iter
-
-            def lr_fn(iteration):
-                return 1 + iteration * factor
-
-        else:
-            factor = (np.log(end_lr) - np.log(start_lr)) / num_iter
-
-            def lr_fn(iteration):
-                return np.exp(factor) ** iteration
-
-        return lr_fn
 
     def set_lr(self, lr: float):
         """Method to set learning rate
@@ -142,6 +131,25 @@ class LRHandler:
             fig.tight_layout()
         else:
             return max_grad_lr, min_loss_lr
+
+    @staticmethod
+    def make_lr_fn(
+        start_lr: float, end_lr: float, num_iter: int, step_mode: str = "exp"
+    ):
+        """Method to generate learning rate function (internal only)"""
+        if step_mode == "linear":
+            factor = (end_lr / start_lr - 1) / num_iter
+
+            def lr_fn(iteration):
+                return 1 + iteration * factor
+
+        else:
+            factor = (np.log(end_lr) - np.log(start_lr)) / num_iter
+
+            def lr_fn(iteration):
+                return np.exp(factor) ** iteration
+
+        return lr_fn
 
     def fit_one_cycle(self, epochs, max_lr=None, min_lr=None):
         """Method to perform fit one cycle polcy

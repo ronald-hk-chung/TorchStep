@@ -29,6 +29,14 @@ class ResultHandler:
 
 
 class PrintResults(Callback):
+    def on_train_begin(self):
+        #resetting train_loss and train_metric
+        self.train_loss, self.train_metric = 0, 0
+
+    def on_valid_begin(self):
+        #resetting train_loss and train_metric
+        self.train_loss, self.train_metric = 0, 0
+
     def on_epoch_end(self):
         print(
             f"\rEpoch: {self.total_epochs} "
@@ -56,19 +64,13 @@ class PrintResults(Callback):
                 print(f"valid_metric: {valid_metric}")
         print("-" * 100)
 
-    def on_loss_begin(self):
-        if isinstance(self.metric, dict):
-            if self.metric_keys is None:
-                self.metric_keys = list(self.metric.keys())
-            self.metric = list(self.metric.values())
-
-    def on_valid_loss_begin(self):
-        if isinstance(self.metric, dict):
-            if self.metric_keys is None:
-                self.metric_keys = list(self.metric.keys())
-            self.metric = list(self.metric.values())
-
     def on_loss_end(self):
+        if isinstance(self.metric, dict):
+            if self.metric_keys is None:
+                self.metric_keys = list(self.metric.keys())
+            self.metric = list(self.metric.values())
+        self.train_loss += np.array(self.loss.item())
+        self.train_metric += np.array(self.metric)
         loss = np.around(self.loss.item(), 3)
         metric = np.around(self.metric, 3)
         avg_loss = np.around(self.train_loss / (self.batch_num + 1), 3)
@@ -82,6 +84,12 @@ class PrintResults(Callback):
         )
 
     def on_valid_loss_end(self):
+        if isinstance(self.metric, dict):
+            if self.metric_keys is None:
+                self.metric_keys = list(self.metric.keys())
+            self.metric = list(self.metric.values())
+        self.train_loss += np.array(self.loss.item())
+        self.train_metric += np.array(self.metric)        
         loss = np.around(self.loss.item(), 3)
         metric = np.around(self.metric, 3)
         avg_loss = np.around(self.valid_loss / (self.batch_num + 1), 3)
@@ -94,6 +102,13 @@ class PrintResults(Callback):
             end="",
         )
 
+    def on_train_end(self):
+        self.train_loss /= len(self.train_dataloader)
+        self.train_metric /= len(self.train_dataloader)       
+
+    def on_valid_end(self):
+        self.valid_loss /= len(self.valid_dataloader)
+        self.valid_metric /= len(self.valid_dataloader)    
 
 class SaveResults(Callback):
     def on_epoch_end(self):

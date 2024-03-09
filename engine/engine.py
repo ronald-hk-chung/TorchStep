@@ -4,11 +4,10 @@ Contains class torchstep for train and valid step for PyTorch Model
 
 from typing import Callable
 from tqdm.auto import tqdm
-import numpy as np
 import torch
 from .device_handler import DeviceHandler
 from .callback_handler import CBHandler
-from .learning_rate_handler import LRHandler
+from .optimizer_handler import OptimizerHandler
 from .tensorboard_handler import TBHandler
 from .torchinfo_handler import TorchInfoHandler
 from .result_handler import ResultHandler
@@ -18,7 +17,7 @@ from .checkpoint_handler import CheckPointHandler
 
 Handles = [
     DeviceHandler,
-    LRHandler,
+    OptimizerHandler,
     TBHandler,
     TorchInfoHandler,
     ResultHandler,
@@ -34,25 +33,19 @@ class TSEngine(*Handles):
 
     Args:
         model [nn.Module]: torch model
-        optim [tuple[Optimizer, dict[str, float]]]: Tuple(Optimizer, params dict), example: optim=(torch.optim.Adam, {'lr': 1e-3})
         loss_fn [Callable]: loss function
         metric_fn [Callable]: metric function, Default to None
         train_dataloader [DataLoader]: train dataloader, Default to None, can be set using set_loaders()
         valid_dataloader [DataLoader]: valid dataloader, Default to None, can be set using set_loaders()
     """
 
-    def __init__(
-        self,
-        model: torch.nn.Module,
-        optim: tuple[torch.optim.Optimizer, dict[str, float]],
-        loss_fn: Callable,
-        metric_fn: Callable = None,
-        train_dataloader: torch.utils.data.DataLoader = None,
-        valid_dataloader: torch.utils.data.DataLoader = None,
-    ):
-
+    def __init__(self,
+                 model: torch.nn.Module,
+                 loss_fn: Callable,
+                 metric_fn: Callable = None,
+                 train_dataloader: torch.utils.data.DataLoader = None,
+                 valid_dataloader: torch.utils.data.DataLoader = None):
         self.model = model
-        self.optimizer = optim[0](params=self.model.parameters(), **optim[1])
         self.loss_fn = loss_fn
         self.metric_fn = metric_fn
         self.train_dataloader = train_dataloader
@@ -69,28 +62,7 @@ class TSEngine(*Handles):
         self.metric = None
         for handle in Handles:
             handle.__init__(self)
-
-    def set_optimizer(self, optim: tuple[torch.optim.Optimizer, dict[str, float]]):
-        """Method to set optimizer
-
-        Args:
-          optim [tuple[torch.optim.Opimizer, dictionary of parameters]]
-          Example usage: optim=(torch.optim.Adam, {'lr': 1e-3})
-        """
-        self.optimizer = optim[0](params=self.model.parameters(), **optim[1])
-
-    def set_loaders(
-        self,
-        train_dataloader: torch.utils.data.DataLoader,
-        valid_dataloader: torch.utils.data.DataLoader = None,
-    ):
-        """Method to set dataloaders
-
-        Args: train_dataloader, valid_dataloader
-        """
-        self.train_dataloader = train_dataloader
-        self.valid_dataloader = valid_dataloader
-
+    
     def train(self, epochs: int):
         """Method for TSEngine to run train and valid loops
 
@@ -105,16 +77,13 @@ class TSEngine(*Handles):
             self.callback_handler.on_epoch_end(self)
 
     def _train_loop(self):
-        self.callback_handler.on_train_begin(self)
         self.set_train_mode()
-        self.train_loss, self.train_metric = 0, 0
+        self.callback_handler.on_train_begin(self)
         for self.batch_num, batch in enumerate(self.train_dataloader):
             self.callback_handler.on_batch_begin(self)
             self.batch = self.to_device(batch)
-            self.loss, self.metric = self.train_step()
             self.callback_handler.on_loss_begin(self)
-            self.train_loss += np.array(self.loss.item())
-            self.train_metric += np.array(self.metric)
+            self.loss, self.metric = self.train_step()
             self.callback_handler.on_loss_end(self)
             self.loss.backward()
             self.callback_handler.on_step_begin(self)
@@ -122,24 +91,18 @@ class TSEngine(*Handles):
             self.callback_handler.on_step_end(self)
             self.optimizer.zero_grad()
             self.callback_handler.on_batch_end(self)
-        self.train_loss /= len(self.train_dataloader)
-        self.train_metric /= len(self.train_dataloader)
         self.callback_handler.on_train_end(self)
 
     def _valid_loop(self):
-        self.callback_handler.on_valid_begin(self)
         self.set_valid_mode()
+        self.callback_handler.on_valid_begin(self)
         self.valid_loss, self.valid_metric = 0, 0
         with torch.inference_mode():
             for self.batch_num, batch in enumerate(self.valid_dataloader):
                 self.batch = self.to_device(batch)
-                self.loss, self.metric = self.valid_step()
                 self.callback_handler.on_valid_loss_begin(self)
-                self.valid_loss += np.array(self.loss.item())
-                self.valid_metric += np.array(self.metric)
+                self.loss, self.metric = self.valid_step()
                 self.callback_handler.on_valid_loss_end(self)
-        self.valid_loss /= len(self.valid_dataloader)
-        self.valid_metric /= len(self.valid_dataloader)
         self.callback_handler.on_valid_end(self)
 
     def train_step(self):
