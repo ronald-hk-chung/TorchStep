@@ -15,6 +15,16 @@ class OptimizerHandler:
         self.scheduler = None
         self.is_batch_lr_scheduler = False
         self.LearningRateScheduler = LearningRateScheduler
+
+    def set_optimizer(self, optimizer: torch.optim.Optimizer, defaults: dict[str, float]):
+        """Method to set optimizer
+        
+        Args:
+            optimizer: optimizer to be set
+            defaults: defaults of optimizer
+        
+        """
+        self.optimizer = optimizer(params=self.model.parameters(), **defaults)
         
     def set_lr_scheduler(
         self, scheduler: torch.optim.lr_scheduler, is_batch_lr_scheduler: bool = False
