@@ -39,15 +39,15 @@ class TSEngine(*Handles):
         valid_dataloader [DataLoader]: valid dataloader, Default to None, can be set using set_loaders()
     """
 
-    def __init__(self,
-                 model: torch.nn.Module,
-                 optimizer: torch.optim.Optimizer,
-                 loss_fn: Callable,
-                 metric_fn: Callable = None,
-                 train_dataloader: torch.utils.data.DataLoader = None,
-                 valid_dataloader: torch.utils.data.DataLoader = None):
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        loss_fn: Callable,
+        metric_fn: Callable = None,
+        train_dataloader: torch.utils.data.DataLoader = None,
+        valid_dataloader: torch.utils.data.DataLoader = None,
+    ):
         self.model = model
-        self.optimizer = optimizer
         self.loss_fn = loss_fn
         self.metric_fn = metric_fn
         self.train_dataloader = train_dataloader
@@ -60,7 +60,7 @@ class TSEngine(*Handles):
         self.metric = None
         for handle in Handles:
             handle.__init__(self)
-    
+
     def train(self, epochs: int):
         """Method for TSEngine to run train and valid loops
 

@@ -11,10 +11,15 @@ class OptimizerHandler:
     """Class for handling Learning Rates"""
 
     def __init__(self):
+        self.optimizer = self.configure_optimizer()
         self.learning_rates = []
         self.scheduler = None
         self.is_batch_lr_scheduler = False
         self.LearningRateScheduler = LearningRateScheduler
+
+    def configure_optimizer(self):
+        """Method to configure optimizer on initialisation"""
+        raise Exception('Need to define configure_optimizer() to setup optimizer for training')
 
     def set_optimizer(self, optimizer: torch.optim.Optimizer, defaults: dict[str, float]):
         """Method to set optimizer
