@@ -54,10 +54,6 @@ class TSEngine(*Handles):
         self.model.to(self.device)
         self.total_epochs = 0
         self.batch = None
-        self.train_loss = None
-        self.train_metric = None
-        self.valid_loss = None
-        self.valid_metric = None
         self.loss = None
         self.metric = None
         for handle in Handles:

@@ -7,6 +7,10 @@ class ResultHandler:
     """Class for handling Printing and Saving Results"""
 
     def __init__(self):
+        self.train_loss = None
+        self.train_metric = None
+        self.valid_loss = None
+        self.valid_metric = None
         self.PrintResults = PrintResults
         self.SaveResults = SaveResults
         self.metric_keys = None
@@ -35,7 +39,7 @@ class PrintResults(Callback):
 
     def on_valid_begin(self):
         #resetting train_loss and train_metric
-        self.train_loss, self.train_metric = 0, 0
+        self.valid_loss, self.valid_metric = 0, 0
 
     def on_epoch_end(self):
         print(
@@ -88,8 +92,8 @@ class PrintResults(Callback):
             if self.metric_keys is None:
                 self.metric_keys = list(self.metric.keys())
             self.metric = list(self.metric.values())
-        self.train_loss += np.array(self.loss.item())
-        self.train_metric += np.array(self.metric)        
+        self.valid_loss += np.array(self.loss.item())
+        self.valid_metric += np.array(self.metric)        
         loss = np.around(self.loss.item(), 3)
         metric = np.around(self.metric, 3)
         avg_loss = np.around(self.valid_loss / (self.batch_num + 1), 3)
