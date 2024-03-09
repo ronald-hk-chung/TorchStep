@@ -36,7 +36,7 @@ class TorchInfoHandler:
             batch = next(iter(self.train_dataloader))
             self.batch = self.to_device(batch)
             input_data, y = self.split_batch()
-            input_data = input_data if torch.istensor(input_data) else [input_data]
+            input_data = input_data if torch.is_tensor(input_data) else [input_data]
         else:
             input_data = self.to_device(input_data)
         print(
