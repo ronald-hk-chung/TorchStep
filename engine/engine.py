@@ -52,8 +52,6 @@ class TSEngine(*Handles):
         self.metric_fn = metric_fn
         self.train_dataloader = train_dataloader
         self.valid_dataloader = valid_dataloader
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model.to(self.device)
         self.total_epochs = 0
         self.batch = None
         self.loss = None

@@ -1,7 +1,6 @@
 import torch
 from typing import Any
 
-
 def to_device(X: Any, device: str):
     """Method to put variable X to gpu if available"""
     if isinstance(X, list):
@@ -15,9 +14,12 @@ def to_device(X: Any, device: str):
     else:
         return X
 
-
 class DeviceHandler:
     """Class for handling device management"""
+
+    def __init__(self):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to(self.device)
 
     def to_device(self, X: Any):
         return to_device(X, self.device)

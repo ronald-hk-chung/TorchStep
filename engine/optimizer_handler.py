@@ -19,18 +19,21 @@ class OptimizerHandler:
 
     def configure_optimizer(self):
         """Method to configure optimizer on initialisation"""
-        raise Exception('Need to define configure_optimizer() to setup optimizer for training')
+        raise Exception(
+            "Need to define configure_optimizer() to setup optimizer for training"
+        )
 
-    def set_optimizer(self, optimizer: torch.optim.Optimizer, defaults: dict[str, float]):
+    def set_optimizer(
+        self, optimizer: torch.optim.Optimizer, defaults: dict[str, float]
+    ):
         """Method to set optimizer
         
         Args:
             optimizer: optimizer to be set
             defaults: defaults of optimizer
-        
         """
         self.optimizer = optimizer(params=self.model.parameters(), **defaults)
-        
+
     def set_lr_scheduler(
         self, scheduler: torch.optim.lr_scheduler, is_batch_lr_scheduler: bool = False
     ):
