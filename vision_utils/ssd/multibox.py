@@ -4,8 +4,11 @@ import torch.nn as nn
 from .prior import PriorBox
 from .utils import match, log_sum_exp
 
+
 class MultiBoxLoss(nn.Module):
     """SSD Weighted Loss Function
+    Reference: https://arxiv.org/pdf/1512.02325.pdf
+
     Workflow:
     1)  Produce Confidence Target Indices by matching ground truth boxes
         with (default) priorboxes that have jaccard index > threshold parameter
@@ -13,16 +16,19 @@ class MultiBoxLoss(nn.Module):
         truth boxes and their matched 'priorboxes'
     3)  Hard negative mining to filter the excessive number of negative examples
         that comes with using a large number of default bounding boxes (default: neg:pos=3:1)
+
     Objective Loss:
         L(x,c,l,g) = (Lconf(x, c) + αLloc(x,l,g)) / N
-        Where, Lconf is the CrossEntropy Loss and Lloc is the SmoothL1 Loss
-        weighted by α which is set to 1 by cross val.
-        Args:
+        Where:
+            Lconf is the CrossEntropy Loss
+            Lloc is the SmoothL1 Loss
+            weighted by α which is set to 1 by cross val.
+
             c: class confidences,
             l: predicted boxes,
             g: ground truth boxes
             N: number of matched default boxes
-        Reference: https://arxiv.org/pdf/1512.02325.pdf
+
     """
 
     def __init__(self, iou_thresold=0.5, neg_pos=3, num_classes=91):
@@ -32,20 +38,20 @@ class MultiBoxLoss(nn.Module):
         self.negpos_ratio = neg_pos
         self.variance = [0.1, 0.2]
         # Generate and assign priors to buffer
-        # not to be considered a model parameter and trained by optimizer
         priors = PriorBox()()  # priors shape: torch.size(num_priors, 4) in CXCYWH
+        # not to be considered a model parameter and trained by optimizer
         self.register_buffer("priors", priors)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def forward(self, preds, targets):
         """Multibox Loss
         Args:
-            preds (tuple): (loc_data, conf_data)
-                loc_data shape: torch.size(batch_size, num_priors, 4)
-                conf_data shape: torch.size(batch_size, num_priors, num_classes)
+            preds (tuple[tensor]):  (loc_data, conf_data)
+                loc_data:   Shape: (batch_size, num_priors, 4)
+                conf_data:  Shape: (batch_size, num_priors, num_classes)
 
-            targets (tensor): Ground truth boxes and labels for a batch
-                shape: [batch_size, num_objs, 5] (last idx is the label)
+            targets (tensor):   Ground truth boxes and labels for a batch
+                                Shape: (batch_size, num_objs, 5) (last idx is the label)
         """
         loc_data, conf_data = preds
         batch_size = loc_data.size(0)  # batch size
@@ -64,10 +70,6 @@ class MultiBoxLoss(nn.Module):
             requires_grad=False,
             device=self.device,
         )
-
-        # # Put loc_t and conf_t onto same device as priors
-        # loc_t = loc_t.to(self.priors.device)
-        # conf_t = conf_t.to(self.priors.device)
 
         for batch in range(batch_size):
             boxes = targets[batch]["boxes"] / 300  # in XYXY
@@ -99,6 +101,7 @@ class MultiBoxLoss(nn.Module):
             self.negpos_ratio * num_pos, min=1, max=pos.size(1) - 1
         )  # take atleast one neg example
         neg = idx_rank < num_neg.expand_as(idx_rank)
+
         # Confidence Loss Including Positive and Negative Examples
         pos_idx = pos.unsqueeze(2).expand_as(conf_data)
         neg_idx = neg.unsqueeze(2).expand_as(conf_data)

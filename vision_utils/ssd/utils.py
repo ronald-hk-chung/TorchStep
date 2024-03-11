@@ -2,19 +2,27 @@ import torch
 
 
 def match(threshold, truths, priors, variances, labels):
-    """Match each prior box with the ground truth box of the higest jacard
+    """Match each prior box with the ground truth box of the highest jacard
     overlap, encode the bounding boxes, then return the matched indices
     corresponding to both confidence and location preds
 
     Args:
-        thresold (float): IOU thresold used when matching boxes
-        truths (tensor): Ground truth boxes of shape [num_obj, num_priors] in XYXY
-        priors (tensor): Prior boxes from priorbox layers in CXCYWH, Shape: [n_prior, 4]
-        variances (tensor): Variances corresponding to each prior coord, Shape: [num_priors, 4]
-        labels (tensor): All class labels for the image, Shape: [num_obj]
+        thresold (float):   IOU thresold used when matching boxes
+        truths (tensor):    Ground truth boxes of shape in XYXY
+                            Shape: (num_obj, num_priors)
+        priors (tensor):    Prior boxes from priorbox layers in CXCYWH
+                            Shape: (n_prior, 4)
+        variances (tensor): Variances corresponding to each prior coord
+                            Shape: (num_priors, 4)
+        labels (tensor):    All class labels for the image
+                            Shape: (num_obj, )
 
     Return:
-        tuple(loc_t, conf_t) of matched indices corresponding to 1)location and 2) confidence preds
+        tuple(loc_t, conf_t) of matched indices corresponding to
+        loc (tensor):       encoded offsets to learn
+                            Shape: (num_priors, 4)
+        conf (tensor):      top class label for each prior
+                            Shape: (num_priors, )
     """
     # Calculate jaccard overalap
     overlaps = jaccard(truths, point_form(priors))
@@ -31,26 +39,27 @@ def match(threshold, truths, priors, variances, labels):
     for idx in range(best_prior_idx.size(0)):
         best_truth_idx[best_prior_idx[idx]] = idx
     # Get coordinates of ground truth for each prior in XYXY
-    matches = truths[best_truth_idx]  # Shape: [num_priors, 4]
-    conf = labels[
-        best_truth_idx
-    ]  # Shape: [num_priors], Adding 1 here so that 0 can be background class
-    conf[best_truth_overlap < threshold] = (
-        0  # label as background best_obj_overlap < thresohold
-    )
+    matches = truths[best_truth_idx]  # Shape: (num_priors, 4)
+    conf = labels[best_truth_idx]  # Shape: (num_priors)
+    # label as background best_obj_overlap < thresohold
+    conf[best_truth_overlap < threshold] = 0
     loc = encode(matches, priors, variances)  # matches in XYXY, priors in CXCYWH
-    # [num_priors, 4] encoded offsets to learn, [num_priors] top class label for each prior
     return loc, conf
 
 
 def encode(matched, priors, variances):
     """Encode the variances from the priorbox layers into the ground truth boxes
+
     Args:
-        matched (tensor): Coordinates of ground truth for each prior in XYXY
-        priors (tensor): Prior boxes in CXCYWH
-        variances (list[float]): Variances of priorboxes
+        matched (tensor):           Coordinates of ground truth for each prior in XYXY
+                                    Shape: (num_priors, 4)
+        priors (tensor):            Prior boxes from priorbox layers in CXCYWH
+                                    Shape: (n_prior, 4)
+        variances (list[float]):    Variances of priorboxes
+
     Return:
-        encoded boxes (tensor): [num_priors, 4]
+        encoded_boxes (tensor):     variances encoded matched boxes in CXCYWH
+                                    Shape: (num_priors, 4)
     """
     # Distance between match center and prior center
     g_cxcy = (matched[:, :2] + matched[:, 2:]) / 2 - priors[:, :2]
@@ -59,17 +68,22 @@ def encode(matched, priors, variances):
     # match wh / prior wh
     g_wh = (matched[:, 2:] - matched[:, :2]) / priors[:, 2:]
     g_wh = torch.log(g_wh) / variances[1]
-    return torch.cat([g_cxcy, g_wh], 1)  # [num_priors,4]
+    return torch.cat([g_cxcy, g_wh], 1)
 
 
 def decode(loc, priors, variances):
     """Decode locates from predictions using priors to undo encoding at train time
+
     Args:
-        loc (tensor): location predictions for loc layers, Shape: [num_priors, 4]
-        priors (tensor): Prior boxes in CXCYWH, Shape: [num_priors, 4]
-        variances (list[float]): Variances of priorboxes
+        loc (tensor):               location predictions for loc layers,
+                                    Shape: (num_priors, 4)
+        priors (tensor):            Prior boxes in CXCYWH
+                                    Shape: (num_priors, 4)
+        variances (list[float]):    Variances of priorboxes
+
     Return:
-        decoded bounding box predictions
+        decoded_bboxes (tensor):    decoded bounding boxes in XYXY
+                                    Shape: (num_priors, 4)
     """
     boxes = torch.cat(
         (
@@ -84,16 +98,16 @@ def decode(loc, priors, variances):
 
 
 def jaccard(box_a, box_b):
-    """Compute the jaccard overalp of two sets of boxes.
+    """Compute the jaccard overlap of two sets of boxes
     The jaccard overlap is simply the intersection over union(IOU) of two boxes
     A ∩ B / A ∪ B = A ∩ B / (area(A) + area(B) - A ∩ B)
 
     Args:
-        box_a (tensor): Shape[num_objects, 4]
-        box_b (tensor): Shape[num_objects, 4]
+        box_a (tensor):             Shape: (num_objects, 4)
+        box_b (tensor):             Shape: (num_objects, 4)
 
     Return:
-        jaccard_overlap (tensor): Shape: [box_a.size(0), box_b.size(0)]
+        jaccard_overlap (tensor):   Shape: (box_a.size(0), box_b.size(0))
     """
     inter = intersect(box_a, box_b)
     # A ∩ B / A ∪ B = A ∩ B / (area(A) + area(B) - A ∩ B)
@@ -113,7 +127,7 @@ def jaccard(box_a, box_b):
 
 
 def intersect(box_a, box_b):
-    """Compute intersection area"""
+    """Compute intersection area - A ∩ B"""
     # Get number of coordinates for box_a and box_b
     A = box_a.size(0)
     B = box_b.size(0)
@@ -143,10 +157,10 @@ def point_form(boxes):
     return torch.cat(
         (
             boxes[:, :2] - boxes[:, 2:] / 2,  # xmin, ymin
-            boxes[:, :2] + boxes[:, 2:] / 2,
+            boxes[:, :2] + boxes[:, 2:] / 2,  # xmax, ymax
         ),
         1,
-    )  # xmax, ymax
+    )
 
 
 def log_sum_exp(x):
@@ -154,7 +168,7 @@ def log_sum_exp(x):
     This will be used to determine unaveraged confidence loss across
     all examples in a batch.
     Args:
-        x (tenros): conf_preds from conf layers
+        x (tensor): conf_preds from conf layers
     """
     x_max, x_max_indices = torch.max(x, dim=1, keepdim=True)
     return torch.log(torch.sum(torch.exp(x - x_max), 1, keepdim=True)) + x_max

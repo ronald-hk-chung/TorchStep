@@ -82,21 +82,17 @@ class SSD300(nn.Module):
         features_list = list(features_map_dict.keys())
         self.additional_blocks = []
         for i, features_map in enumerate(features_list[1:]):
-            in_channels = features_map_dict[features_list[i]][
-                "feature_channels"
-            ]  # feature_channels of previous layer
-            intermediate_channels = features_map_dict[features_map][
-                "intermediate_channels"
-            ]  # intermediate channels from conv1
-            out_channels = features_map_dict[features_map][
-                "feature_channels"
-            ]  # output_channel from conv2
-            padding = features_map_dict[features_map][
-                "padding"
-            ]  # padding for conv2, 1 for first 3 and 0 for last 2
-            stride = features_map_dict[features_map][
-                "stride"
-            ]  # stride for conv2, 2 for first 3 and 1 for last 2
+            # feature_channels of previous layer
+            in_channels = features_map_dict[features_list[i]]["feature_channels"]
+            # intermediate channels from conv1
+            intermediate_channels = features_map_dict[features_map]["intermediate_channels"]
+            # output_channel from conv2
+            out_channels = features_map_dict[features_map]["feature_channels"]
+            # padding for conv2, 1 for first 3 and 0 for last 2
+            padding = features_map_dict[features_map]["padding"]
+            # stride for conv2, 2 for first 3 and 1 for last 2
+            stride = features_map_dict[features_map]["stride"]
+
             layer = nn.Sequential(
                 nn.Conv2d(
                     in_channels=in_channels,
@@ -127,8 +123,7 @@ class SSD300(nn.Module):
             self.loc.append(
                 nn.Conv2d(
                     in_channels=features_map["feature_channels"],
-                    out_channels=features_map["num_prior_box"]
-                    * 4,  # prior box * 4 coordinates
+                    out_channels=features_map["num_prior_box"] * 4,
                     kernel_size=3,
                     padding=1,
                 )
@@ -136,8 +131,7 @@ class SSD300(nn.Module):
             self.conf.append(
                 nn.Conv2d(
                     in_channels=features_map["feature_channels"],
-                    out_channels=features_map["num_prior_box"]
-                    * self.num_classes,  # prior_box * labels
+                    out_channels=features_map["num_prior_box"] * self.num_classes,
                     kernel_size=3,
                     padding=1,
                 )
