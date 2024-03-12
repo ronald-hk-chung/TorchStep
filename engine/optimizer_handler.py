@@ -27,27 +27,31 @@ class OptimizerHandler:
         self, optimizer: torch.optim.Optimizer, defaults: dict[str, float]
     ):
         """Method to set optimizer
-        
+
         Args:
-            optimizer: optimizer to be set
-            defaults: defaults of optimizer
+            optimizer (torch.optim.Optimizer):  optimizer to be set
+            defaults (dict[str, float]):        defaults of optimizer in
         """
         self.optimizer = optimizer(params=self.model.parameters(), **defaults)
 
     def set_lr_scheduler(
         self, scheduler: torch.optim.lr_scheduler, is_batch_lr_scheduler: bool = False
     ):
-        """Method to set LR scheduler
+        """
+        Method to set LR scheduler
 
         Args:
-          scheduler [torch.optim.scheduler]
-          is_batch_lr_scheduler [bool]: True for batch scheduler, False for epoch scheduler
+            scheduler (torch.optim.scheduler): Learning Rate Scheduler
+                Reference: https://pytorch.org/docs/stable/optim.html#module-torch.optim.lr_scheduler
+
+            is_batch_lr_scheduler (bool): True for batch scheduler, False for epoch scheduler
         """
         self.scheduler = scheduler
         self.is_batch_lr_scheduler = is_batch_lr_scheduler
 
     def set_lr(self, lr: float):
-        """Method to set learning rate
+        """
+        Method to set learning rate
 
         Args: lr [float]: learning rate
         """
@@ -63,21 +67,21 @@ class OptimizerHandler:
         alpha: float = 0.05,
         show_graph: bool = True,
     ):
-        """Method to perform LR Range Test
-        Reference: Leslie N. Smith 'Cyclical Learning Rates for Training Neual Networks'
+        """
+        Method to perform LR Range Test
+        Reference: Leslie N. Smith 'Cyclical Learning Rates for Training Neual Networks
 
         Args:
-          end_lr [float]: upper boundary for the LR Range test
-          start_lr [float]: lower boundary for the LR Range test, Defaults to current optimizer LR
-          num_iter [int]: number of interations to move from start_lr to end_lr
-          step_mode [str]: show LR range test linear or log scale, Defaults to 'exp'
-          alpha [float]: alpha term for smoothed loss (smooth_loss = alpha * loss + (1-alpha) * prev_loss)
-          show_graph [bool]: to show LR Range Test result in plot
+          end_lr (float):       upper boundary for the LR Range test
+          start_lr (float):     lower boundary for the LR Range test, Defaults to current optimizer LR
+          num_iter (int):       number of interations to move from start_lr to end_lr
+          step_mode (str):      show LR range test linear or log scale, Defaults to 'exp'
+          alpha (float):        alpha term for smoothed loss (smooth_loss = alpha * loss + (1-alpha) * prev_loss)
+          show_graph (bool):    to show LR Range Test result in plot
 
         Return:
-          max_grad_lr [float]: LR with maximum loss gradient (steepest)
-          min_loss_lr [float]: LR with minium loss (minimum)
-
+          max_grad_lr (float):  LR with maximum loss gradient (steepest)
+          min_loss_lr (float):  LR with minium loss (minimum)
         """
         previous_states = {
             "model": deepcopy(self.model.state_dict()),
@@ -162,22 +166,24 @@ class OptimizerHandler:
         return lr_fn
 
     def fit_one_cycle(self, epochs, max_lr=None, min_lr=None):
-        """Method to perform fit one cycle polcy
-        Reference: https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.OneCycleLR.html
-        Reference: https://arxiv.org/abs/1708.07120
+        """
+        Method to perform fit one cycle polcy
 
         Sets the learning rate of each parameter group according to the 1cycle learning rate policy.
         The 1cycle policy anneals the learning rate from an initial learning rate to some maximum learning rate
         and then from that maximum learning rate to some minimum learning rate
 
         Args:
-          epochs [int]: The number of epochs to train for
-          max_lr [float]: Upper learning rate boundaries in the cycle for each parameter group
-          min_lr [float]: Lower learning rate boundaries in the cycle for each parameter group
+          epochs (int):     The number of epochs to train for
+          max_lr (float):   Upper learning rate boundaries in the cycle for each parameter group, Default: None
+          min_lr (float):   Lower learning rate boundaries in the cycle for each parameter group, Default: None
 
-          if max_lr and min_lr is not specified,
+          If max_lr and min_lr is not specified,
           lr_range_test will be performed
           with max_lr set to min_loss_lr and min_lr set to max_grad_lr
+
+        Reference: https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.OneCycleLR.html
+        Reference: https://arxiv.org/abs/1708.07120
         """
         if max_lr is None or min_lr is None:
             max_grad_lr, min_loss_lr = self.lr_range_test(

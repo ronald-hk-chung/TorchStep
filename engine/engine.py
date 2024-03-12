@@ -29,14 +29,15 @@ Handles = [
 
 
 class TSEngine(*Handles):
-    """TorchStep class contains a number of useful functions for Pytorch Model Training
+    """
+    TorchStep class contains a number of useful functions for Pytorch Model Training
 
     Args:
-        model [nn.Module]: torch model
-        loss_fn [Callable]: loss function
-        metric_fn [Callable]: metric function, Default to None
-        train_dataloader [DataLoader]: train dataloader, Default to None, can be set using set_loaders()
-        valid_dataloader [DataLoader]: valid dataloader, Default to None, can be set using set_loaders()
+        model (nn.Module): torch model
+        loss_fn (Callable): loss function
+        metric_fn (Callable): metric function, Default to None
+        train_dataloader (DataLoader): train dataloader, Default to None, can be set using set_loaders()
+        valid_dataloader (DataLoader): valid dataloader, Default to None, can be set using set_loaders()
     """
 
     def __init__(
@@ -60,9 +61,10 @@ class TSEngine(*Handles):
             handle.__init__(self)
 
     def train(self, epochs: int):
-        """Method for TSEngine to run train and valid loops
+        """
+        Method for TSEngine to run train and valid loops
 
-        Args: epochs [int]: num of epochs to run
+        Args: epochs (int): num of epochs to run
         """
         for epoch in tqdm(range(epochs), desc="Epochs", position=0):
             self.total_epochs += 1
@@ -131,9 +133,11 @@ class TSEngine(*Handles):
         self.model.eval()
 
     def freeze(self, layers: list[str] = None):
-        """Method to change requires_grad to False for layers
+        """
+        Method to change requires_grad to False for layers
 
-        Args: layers [list[str]]: list of layers to freeze, freeze all if None
+        Args: 
+            layers (list[str]): list of layers to freeze, freeze all if None
         """
         if layers is None:
             layers = [
@@ -147,9 +151,11 @@ class TSEngine(*Handles):
                         param.requires_grad = False
 
     def unfreeze(self, layers: list[str] = None):
-        """Method to change requires_grad to True for layers
+        """
+        Method to change requires_grad to True for layers
 
-        Args: layers [list[str]]: list of layers to unfreeze, unfreeze all if None
+        Args: 
+            layers (list[str]): list of layers to unfreeze, unfreeze all if None
         """
         if layers is None:
             layers = [

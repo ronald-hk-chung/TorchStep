@@ -5,9 +5,11 @@ class CheckPointHandler:
     """Class for handling checkpoint saving and loading"""
 
     def save_checkpoint(self, filename: str):
-        """Method to save model checkpoint
+        """
+        Method to save model checkpoint
 
-        Args: filename [str]: filename in pt/pth of model, e.g. 'model_path/model.pt'
+        Args: 
+            filename (str): filename in pt/pth of model, e.g. 'model_path/model.pt'
         """
         checkpoint = {
             "epoch": self.total_epochs,
@@ -18,9 +20,11 @@ class CheckPointHandler:
         torch.save(checkpoint, filename)
 
     def load_checkpoint(self, filename: str):
-        """Method to load model checkpoint
+        """
+        Method to load model checkpoint
 
-        Args: file path of checkpoint to load in pt/pth format, e.g. 'model_path/model.pt'
+        Args: 
+            filename (str): file path of checkpoint to load in pt/pth format, e.g. 'model_path/model.pt'
         """
         checkpoint = torch.load(filename)
         self.model.load_state_dict(checkpoint["model_state_dict"])

@@ -12,12 +12,13 @@ def show_batch(
     labelling: Callable,
     transforms: transforms.Compose = T.ToPILImage(),
 ):
-    """Function to show a batch of images with custom labelling
+    """
+    Function to show a batch of images with custom labelling
 
     Args:
-      dataloader [DataLoader]: DataLoader of images to show
-      transforms [transforms]: transform of image tensor to PIL
-      labelling [Callable]: function to return label given labels generated from dataloader
+        dataloader (DataLoader): DataLoader of images to show
+        transforms (transforms): transform of image tensor to PIL
+        labelling (Callable): function to return label given labels generated from dataloader
     """
     fig = plt.figure(figsize=(20, 10))
     imgs, *labels = next(iter(dataloader))
@@ -36,14 +37,15 @@ def show_image(
     bbs_label: list = None,
     color: str = "r",
 ):
-    """Show Image
+    """
+    Show Image
 
     Args:
-      img [ndarray]: image to show
-      bbs [list]: list bounding boxes
-      bbs_format [str]: bounding box format ('XYXY', 'XYWH', 'CXCYWH'), default to 'XYXY'
-      bbs_label [list]: list of bounding box label
-      color [str]: edgecolor of bounding box
+        img (ndarray): image to show
+        bbs (list): list bounding boxes
+        bbs_format (str): bounding box format ('XYXY', 'XYWH', 'CXCYWH'), default to 'XYXY'
+        bbs_label (list): list of bounding box label
+        color (str): edgecolor of bounding box
     """
     fig, ax = plt.subplots()
     ax.imshow(img)

@@ -13,8 +13,8 @@ class TBHandler:
         """Method to set TSEngine tensorboard
 
         Args:
-          name [str]: name of project
-          folder [str]: name of folder to run tensorboard logs, Defaults to 'runs'
+          name (str):   name of project
+          folder (str): name of folder to run tensorboard logs, Defaults to 'runs'
         """
         suffix = datetime.datetime.now().strftime("%Y%m%d")
         self.writer = SummaryWriter(f"{folder}/{name}_{suffix}")

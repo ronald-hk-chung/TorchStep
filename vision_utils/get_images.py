@@ -11,16 +11,17 @@ from duckduckgo_search import DDGS
 def collect_images(
     keywords: str, path: str, max_results: int = 30, timeout: tuple = (3, 5)
 ):
-    """Function to collect images using DDGS
+    """
+    Function to collect images using DDGS
 
     Args:
-      keywords [str]: keywords for query
-      path [str]: images path to be saved to
-      max_results [int]: max number of results. If None, returns results only from the first response. Defaults to None.
-      timeout [tuple[float, float]]: timeout for request (connect_timeout, read_timeout). Default to (3, 5)
+      keywords (str): keywords for query
+      path (str): images path to be saved to
+      max_results (int): max number of results. If None, returns results only from the first response. Defaults to None.
+      timeout (tuple[float, float]): timeout for request (connect_timeout, read_timeout). Default to (3, 5)
 
     Returns:
-      image_results [dict[str: str]]: {'image': image_url,
+      image_results (dict[str: str]): {'image': image_url,
                                        'url': site_url,
                                        'path': image_path,
                                        'height': image_height,
@@ -59,9 +60,10 @@ def collect_images(
 
 
 def validate_images(path: str):
-    """Function to validate images within a path and remove broken images
+    """
+    Function to validate images within a path and remove broken images
 
-    Args: path [str]: path to validate
+    Args: path (str): path to validate
     """
     paths = Path(path).rglob("*.jpg")
     for path in paths:

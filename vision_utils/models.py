@@ -4,14 +4,15 @@ from torchvision.transforms import v2 as T
 
 
 def get_pretrained_model(name: str, pretrained_weights: str | None = None):
-    """Get pretrained model and pretrained transformation (forward and reverse)
+    """
+    Get pretrained model and pretrained transformation (forward and reverse)
 
     Args:
-    model[str]: name of pretrained model
-    weights[str]: name of pretrained model weights
+        model (str): name of pretrained model
+        weights (str): name of pretrained model weights
 
     Returns:
-    A tuple of (model, forward_transformation, reverse_transformation)
+        A tuple of (model, forward_transformation, reverse_transformation)
 
     Example usage:
     model, ftfms, rtfms = get_prerained_model(name='resnet18',

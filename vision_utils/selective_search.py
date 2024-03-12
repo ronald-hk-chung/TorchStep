@@ -4,16 +4,16 @@ import numpy as np
 
 
 class SelectiveSearch:
-    """Class performing Selective Search on image
+    """
+    Class performing Selective Search on image
 
     Args:
-      scale [float]: Free parameter. Higher means larger clusters in felzenszwalb segmentation
-      sigma [float]: Width of Gaussian kernel for felzenszwalb segmentation
-      min_size [int]: Minimum component size for felzenszwalb segmentation
+      scale (float): Free parameter. Higher means larger clusters in felzenszwalb segmentation
+      sigma (float): Width of Gaussian kernel for felzenszwalb segmentation
+      min_size (int): Minimum component size for felzenszwalb segmentation
 
     Methods:
       search(size_thresold=0.05): return list of bounding boxes as [x, y, w, h]
-
     """
 
     __slot__ = ["regions"]
@@ -239,10 +239,10 @@ class SelectiveSearch:
         """Method to perform selective search
 
         Args:
-          size_thresold [float]: thresold as percentage of image
+          size_thresold (float): thresold as percentage of image
 
         Return:
-          candidates [list]: list of bounding boxes as [x, y, w, h]
+          candidates (list): list of bounding boxes as [x, y, w, h]
         """
         candidates = []
         for r in self.regions:
