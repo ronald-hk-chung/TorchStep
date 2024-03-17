@@ -51,7 +51,12 @@ class MultiBoxLoss(nn.Module):
                 conf_data:  Shape: (batch_size, num_priors, num_classes)
 
             targets (tensor):   Ground truth boxes and labels for a batch
-                                Shape: (batch_size, num_objs, 5) (last idx is the label)
+                Shape: (batch_size, num_objs, 5) (last idx is the label)
+
+        Returns:
+            dict[tensor]: dictionary of tensors including
+                loss_l (tensor): smooth_l1_loss of predicted location and groundtruth location
+                loss_c (tensor): cross_entropy loss of predicted classification and groundtruth classification
         """
         loc_data, conf_data = preds
         batch_size = loc_data.size(0)  # batch size
@@ -97,17 +102,15 @@ class MultiBoxLoss(nn.Module):
         _, loss_idx = loss_c.sort(1, descending=True)
         _, idx_rank = loss_idx.sort(1)
         num_pos = pos.long().sum(1, keepdim=True)
-        num_neg = torch.clamp(
-            self.negpos_ratio * num_pos, min=1, max=pos.size(1) - 1
-        )  # take atleast one neg example
+        # take atleast one neg example
+        num_neg = torch.clamp(self.negpos_ratio * num_pos, min=1, max=pos.size(1) - 1)
         neg = idx_rank < num_neg.expand_as(idx_rank)
 
         # Confidence Loss Including Positive and Negative Examples
         pos_idx = pos.unsqueeze(2).expand_as(conf_data)
         neg_idx = neg.unsqueeze(2).expand_as(conf_data)
-        mask_idx = (pos_idx + neg_idx).gt(
-            0
-        )  # mask_idx has shape (pos + neg examples, 91)
+        # mask_idx has shape (pos + neg examples, 91)
+        mask_idx = (pos_idx + neg_idx).gt(0)
         conf_p = conf_data[mask_idx].view(-1, self.num_classes)
         mask = (pos + neg).gt(0)
         conf_gt = conf_t[mask]  # mask has shape (pos + neg examples)

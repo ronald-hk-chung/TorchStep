@@ -85,7 +85,9 @@ class SSD300(nn.Module):
             # feature_channels of previous layer
             in_channels = features_map_dict[features_list[i]]["feature_channels"]
             # intermediate channels from conv1
-            intermediate_channels = features_map_dict[features_map]["intermediate_channels"]
+            intermediate_channels = features_map_dict[features_map][
+                "intermediate_channels"
+            ]
             # output_channel from conv2
             out_channels = features_map_dict[features_map]["feature_channels"]
             # padding for conv2, 1 for first 3 and 0 for last 2

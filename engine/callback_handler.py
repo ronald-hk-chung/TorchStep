@@ -1,4 +1,5 @@
 class Callback:
+    """Base Callback class template for creating callbacks"""
     def __init__(self):
         pass
 

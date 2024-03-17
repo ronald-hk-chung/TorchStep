@@ -10,8 +10,8 @@ class GradientHandler:
         self.GradientClipping = GradientClipping
 
     def set_clip_grad_value(self, clip_value):
-        """
-        Method to perform Value Clipping
+        """Method to perform Value Clipping
+
         Clips gradients element-wise so that they stay inside the [-clip_value, +clip_value]
         Reference: https://pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_value_.html
         Executed in GradientClipping Callback
@@ -24,8 +24,8 @@ class GradientHandler:
         )
 
     def set_clip_grad_norm(self, max_norm, norm_type=2):
-        """
-        Method to perform Norm Clipping
+        """Method to perform Norm Clipping
+
         Norm clipping computes the norm for all gradeints together if they were concatedated into a single vector
         if the norm exceeds teh clipping value, teh gradients are scaled down to match the desired norm
         Reference: https://pytorch.org/docs/stable/generated/torch.nn.utils.clip_grad_norm_.html
@@ -40,8 +40,7 @@ class GradientHandler:
         )
 
     def set_clip_backprop(self, clip_value):
-        """
-        Method to set clip gradient on the fly using backward hook (register_hook)
+        """Method to set clip gradient on the fly using backward hook (register_hook)
         clamp all grad using torch.clamp between [-clip_value, +clip_value]
 
         Args:

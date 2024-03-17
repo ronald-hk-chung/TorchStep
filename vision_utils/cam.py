@@ -21,12 +21,12 @@ def get_cam(
     Method to get Class Activation Maps(CAM) for in image
 
     Args:
-      img_path (str):   path of img to be analysed
-      tfms (transforms): transform of image, PIL to Tensor
-      rtfms (transforms): reverse transform of image, Tensor to PIL
-      classifier (TSEngine): TSEngine class classifier
-      layers_to_activate (list): layers to get activation from model in classifier
-      class_to_activate (int): class for Class Activation Maps (CAM) analysis
+        img_path (str):   path of img to be analysed
+        tfms (transforms): transform of image, PIL to Tensor
+        rtfms (transforms): reverse transform of image, Tensor to PIL
+        classifier (TSEngine): TSEngine class classifier
+        layers_to_activate (list): layers to get activation from model in classifier
+        class_to_activate (int): class for Class Activation Maps (CAM) analysis
     """
     gradients = None
     activations = None

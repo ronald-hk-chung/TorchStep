@@ -37,8 +37,7 @@ def show_image(
     bbs_label: list = None,
     color: str = "r",
 ):
-    """
-    Show Image
+    """Show Image
 
     Args:
         img (ndarray): image to show

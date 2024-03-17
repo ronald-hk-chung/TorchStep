@@ -2,11 +2,10 @@ import torch
 from typing import Any
 
 def to_device(X: Any, device: str):
-    """
-    Method to put variable X to gpu if available
+    """Method to put variable X to gpu if available
 
     Args:
-        X (Any):        list/tuple/dict that contains tensors
+        X (Any):    list/tuple/dict that contains tensors
         device (str):   GPU - 'cuda', CPU - 'cpu'
     """
     if isinstance(X, list):

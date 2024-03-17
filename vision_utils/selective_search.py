@@ -4,16 +4,15 @@ import numpy as np
 
 
 class SelectiveSearch:
-    """
-    Class performing Selective Search on image
+    """Class performing Selective Search on image
 
     Args:
-      scale (float): Free parameter. Higher means larger clusters in felzenszwalb segmentation
-      sigma (float): Width of Gaussian kernel for felzenszwalb segmentation
-      min_size (int): Minimum component size for felzenszwalb segmentation
+        scale (float): Free parameter. Higher means larger clusters in felzenszwalb segmentation
+        sigma (float): Width of Gaussian kernel for felzenszwalb segmentation
+        min_size (int): Minimum component size for felzenszwalb segmentation
 
     Methods:
-      search(size_thresold=0.05): return list of bounding boxes as [x, y, w, h]
+        search(size_thresold=0.05): return list of bounding boxes as [x, y, w, h]
     """
 
     __slot__ = ["regions"]
@@ -73,8 +72,7 @@ class SelectiveSearch:
         return R
 
     def calc_texture_gradient(self):
-        """
-        Calculate texture gradient for image using LBP
+        """Calculate texture gradient for image using LBP
         Reference: https://scikit-image.org/docs/stable/api/skimage.feature.html#skimage.feature.local_binary_pattern
         """
         ret = np.zeros(self.img.shape)
@@ -87,8 +85,7 @@ class SelectiveSearch:
         return ret
 
     def calc_colour_hist(self, mask):
-        """
-        Calculate color histogram for each region
+        """Calculate color histogram for each region
         The output will be an array with n_BINS * n_color_channels
         Extract from HSV
         """
@@ -146,9 +143,8 @@ class SelectiveSearch:
         return neighbours
 
     def calc_sim(self, r1, r2):
-        """
-        Calculate similarity between region ri and rj using diverse
-        combinations of similarity measures.
+        """Calculate similarity between region ri and rj 
+        using diverse combinations of similarity measures.
         """
         sim_colour = self.calc_sim_colour(r1, r2)
         sim_texture = self.calc_sim_texture(r1, r2)
@@ -165,16 +161,14 @@ class SelectiveSearch:
         return np.minimum(r1["hist_t"], r2["hist_t"]).sum()
 
     def calc_sim_size(self, r1, r2):
-        """
-        Size similarity boosts joint between small regions, which prevents
+        """Size similarity boosts joint between small regions, which prevents
         a single region from engulfing other blobs one by one.
         size (ri, rj) = 1 − [size(ri) + size(rj)] / size(image)
         """
         return 1.0 - (r1["size"] + r2["size"]) / self.imsize
 
     def calc_sim_fill(self, r1, r2):
-        """
-        Fill similarity measures how well ri and rj fit into each other.
+        """Fill similarity measures how well ri and rj fit into each other.
         BBij is the bounding box around ri and rj.
         fill(ri, rj) = 1 − [size(BBij) − size(ri) − size(ri)] / size(image)
         """

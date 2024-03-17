@@ -2,27 +2,23 @@ import torch
 
 
 def match(threshold, truths, priors, variances, labels):
-    """Match each prior box with the ground truth box of the highest jacard
+    """Function to match prior box with ground truth box
+
+    Match each prior box with the ground truth box of the highest jacard
     overlap, encode the bounding boxes, then return the matched indices
     corresponding to both confidence and location preds
 
     Args:
         thresold (float):   IOU thresold used when matching boxes
-        truths (tensor):    Ground truth boxes of shape in XYXY
-                            Shape: (num_obj, num_priors)
-        priors (tensor):    Prior boxes from priorbox layers in CXCYWH
-                            Shape: (n_prior, 4)
-        variances (tensor): Variances corresponding to each prior coord
-                            Shape: (num_priors, 4)
-        labels (tensor):    All class labels for the image
-                            Shape: (num_obj, )
+        truths (tensor):    Ground truth boxes of shape in XYXY, Shape: (num_obj, num_priors)
+        priors (tensor):    Prior boxes from priorbox layers in CXCYWH, Shape: (n_prior, 4)
+        variances (tensor): Variances corresponding to each prior coord, Shape: (num_priors, 4)
+        labels (tensor):    All class labels for the image, Shape: (num_obj, )
 
     Return:
-        tuple(loc_t, conf_t) of matched indices corresponding to
-        loc (tensor):       encoded offsets to learn
-                            Shape: (num_priors, 4)
-        conf (tensor):      top class label for each prior
-                            Shape: (num_priors, )
+        tuple(loc_t, conf_t): matched indices corresponding to
+            loc (tensor):   encoded offsets to learn, Shape: (num_priors, 4)
+            conf (tensor):      top class label for each prior, Shape: (num_priors, )
     """
     # Calculate jaccard overalap
     overlaps = jaccard(truths, point_form(priors))
@@ -51,15 +47,12 @@ def encode(matched, priors, variances):
     """Encode the variances from the priorbox layers into the ground truth boxes
 
     Args:
-        matched (tensor):           Coordinates of ground truth for each prior in XYXY
-                                    Shape: (num_priors, 4)
-        priors (tensor):            Prior boxes from priorbox layers in CXCYWH
-                                    Shape: (n_prior, 4)
-        variances (list[float]):    Variances of priorboxes
+        matched (tensor):   Coordinates of ground truth for each prior in XYXY, Shape: (num_priors, 4)
+        priors (tensor):    Prior boxes from priorbox layers in CXCYWH, Shape: (n_prior, 4)
+        variances (list[float]):    Variances of priorboxe
 
     Return:
-        encoded_boxes (tensor):     variances encoded matched boxes in CXCYWH
-                                    Shape: (num_priors, 4)
+        encoded_boxes (tensor): variances encoded matched boxes in CXCYWH, Shape: (num_priors, 4)
     """
     # Distance between match center and prior center
     g_cxcy = (matched[:, :2] + matched[:, 2:]) / 2 - priors[:, :2]
@@ -75,15 +68,12 @@ def decode(loc, priors, variances):
     """Decode locates from predictions using priors to undo encoding at train time
 
     Args:
-        loc (tensor):               location predictions for loc layers,
-                                    Shape: (num_priors, 4)
-        priors (tensor):            Prior boxes in CXCYWH
-                                    Shape: (num_priors, 4)
+        loc (tensor):   location predictions for loc layers, Shape: (num_priors, 4)
+        priors (tensor):    Prior boxes in CXCYWH, Shape: (num_priors, 4)
         variances (list[float]):    Variances of priorboxes
 
     Return:
-        decoded_bboxes (tensor):    decoded bounding boxes in XYXY
-                                    Shape: (num_priors, 4)
+        decoded_bboxes (tensor):    decoded bounding boxes in XYXY, Shape: (num_priors, 4)
     """
     boxes = torch.cat(
         (
@@ -99,12 +89,13 @@ def decode(loc, priors, variances):
 
 def jaccard(box_a, box_b):
     """Compute the jaccard overlap of two sets of boxes
+
     The jaccard overlap is simply the intersection over union(IOU) of two boxes
     A ∩ B / A ∪ B = A ∩ B / (area(A) + area(B) - A ∩ B)
 
     Args:
-        box_a (tensor):             Shape: (num_objects, 4)
-        box_b (tensor):             Shape: (num_objects, 4)
+        box_a (tensor): Shape: (num_objects, 4)
+        box_b (tensor): Shape: (num_objects, 4)
 
     Return:
         jaccard_overlap (tensor):   Shape: (box_a.size(0), box_b.size(0))

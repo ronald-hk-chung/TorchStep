@@ -11,8 +11,7 @@ from duckduckgo_search import DDGS
 def collect_images(
     keywords: str, path: str, max_results: int = 30, timeout: tuple = (3, 5)
 ):
-    """
-    Function to collect images using DDGS
+    """Function to collect images using DDGS
 
     Args:
       keywords (str): keywords for query

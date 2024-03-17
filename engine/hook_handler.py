@@ -10,12 +10,11 @@ class HookHandler:
         self.backward_hook_handles = []
 
     def attach_forward_hooks(self, layers_to_hook: list, hook_fn: Callable):
-        """
-        Method to attach custom forward hooks
+        """Method to attach custom forward hooks
 
         Args:
           layers_to_hook (list):    list of layers to hook
-          hook_fn (Callable):       custom hook_fn in during forward pass
+          hook_fn (Callable):   custom hook_fn in during forward pass
         """
         for name, layer in self.modules:
             if name in layers_to_hook:
@@ -23,12 +22,11 @@ class HookHandler:
                 self.forward_hook_handles.append(handle)
 
     def attach_backward_hooks(self, layers_to_hook: list, hook_fn: Callable):
-        """
-        Method to attach custom backward hooks
+        """Method to attach custom backward hooks
 
         Args:
           layers_to_hook (list):    list of layers to hook
-          hook_fn (Callable):       custom hook_fn in during backward pass
+          hook_fn (Callable):   custom hook_fn in during backward pass
         """
         for name, layer in self.modules:
             if name in layers_to_hook:
