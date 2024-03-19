@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sstorch"
+version = "0.0.1"
+authors = [
+  { name="Ronald Chung", email="hoi.k.chung@gmail.com" },
+]
+description = "Self-Study-Torch (sstorch) is a PyTorch library for self-studying"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "typing",
+    "numpy",
+    "tqdm",
+    "torch",
+    "torchvision",
+    "matplotlib",
+    "pillow",
+    "setuptools",
+    "tensorboard",
+    "torchinfo",
+    "skimage",
+    "requests",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+keywords = ['pytorch']
