@@ -1,5 +1,5 @@
 """
-Contains class torchstep for train and valid step for PyTorch Model
+Contains class SSTLearner for train and valid step for PyTorch Model
 """
 
 from typing import Callable
@@ -28,8 +28,8 @@ Handles = [
 ]
 
 
-class TSEngine(*Handles):
-    """TorchStep class contains a number of useful functions for Pytorch Model Training"""
+class SSTLearner(*Handles):
+    """SSTLearner contains pytorch training framework with utility functions"""
 
     def __init__(
         self,
@@ -39,7 +39,7 @@ class TSEngine(*Handles):
         train_dataloader: torch.utils.data.DataLoader = None,
         valid_dataloader: torch.utils.data.DataLoader = None,
     ):
-        """Initializes the TSEngine instance
+        """Initializes the SSTLearner instance
 
         Args:
             model (nn.Module): torch model
@@ -61,7 +61,7 @@ class TSEngine(*Handles):
             handle.__init__(self)
 
     def train(self, epochs: int):
-        """Method for TSEngine to run train and valid loops
+        """Method for SSTLearner to run train and valid loops
 
         Args:
             epochs (int): num of epochs to run
