@@ -12,7 +12,6 @@ description = "Self-Study-Torch (sstorch) is a PyTorch library for self-studying
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
-    "typing",
     "numpy",
     "tqdm",
     "torch",
@@ -22,8 +21,7 @@ dependencies = [
     "setuptools",
     "tensorboard",
     "torchinfo",
-    "skimage",
-    "requests",
+    "scikit-image",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
