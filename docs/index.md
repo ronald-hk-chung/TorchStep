@@ -14,4 +14,4 @@ The documentation is set up in 4 sessions:
 
 ## Acknowledgements
 
-
+Thanks to everyone
