@@ -1,6 +1,19 @@
+"""`SSTLearner` inherits from several sub-class handler to handler specific functions.
+
+Below are the list of handlers:
+
+`DeviceHandler`     -   Device management, uses `torch.device('cuda')` if gpu available
+`OptimizerHandler`  -   Set Optimizer and Learning rate scheduler
+`TBHandler`         -   Set tensorboard for training monitor
+`TorchInfoHandler`  -   Method to utilise torchinfo to show model summary
+`ResultHandler`     -   Record training results within SSTLearner
+`GradientHandler`   -   Gradient clipping
+`HookHandler`       -   Adding forward and backward hook for PyTorch training
+`CheckPointHandler` -   Saving and Loading of training checkpoint
+`CBHandler`         -   Adding `Callback` for default and custom functions during training
+
 """
-Contains class SSTLearner for train and valid step for PyTorch Model
-"""
+
 
 from typing import Callable
 from tqdm.auto import tqdm

@@ -3,6 +3,8 @@ import torch
 
 class CheckPointHandler:
     """Class for handling checkpoint saving and loading"""
+    def __init__(self):
+        pass
 
     def save_checkpoint(self, filename: str):
         """

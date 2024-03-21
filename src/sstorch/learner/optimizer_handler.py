@@ -18,7 +18,10 @@ class OptimizerHandler:
         self.LearningRateScheduler = LearningRateScheduler
 
     def configure_optimizer(self):
-        """Method to configure optimizer on initialisation"""
+        """Method to configure optimizer on initialisation
+        
+        
+        """
         raise Exception(
             "Need to define configure_optimizer() to setup optimizer for training"
         )
