@@ -42,7 +42,10 @@ Handles = [
 
 
 class SSTLearner(*Handles):
-    """SSTLearner contains pytorch training framework with utility functions"""
+    """SSTLearner class for PyTorch training framework with utility functions
+    Full documentation: https://ronald-hk-chung.github.io/sstorch/
+    
+    """
 
     def __init__(
         self,
