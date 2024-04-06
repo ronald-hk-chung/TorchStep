@@ -14,7 +14,6 @@ Below are the list of handlers:
 
 """
 
-
 from typing import Callable
 from tqdm.auto import tqdm
 import torch
@@ -44,7 +43,7 @@ Handles = [
 class SSTLearner(*Handles):
     """SSTLearner class for PyTorch training framework with utility functions
     Full documentation: https://ronald-hk-chung.github.io/sstorch/
-    
+
     """
 
     def __init__(
@@ -121,7 +120,7 @@ class SSTLearner(*Handles):
 
     def train_step(self):
         """Standard train step"""
-        X, y = self.split_batch()
+        X, y = self.batch
         y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
         loss = self.loss_fn(y_logits, y)
         metric = self.metric_fn(y_logits, y) if self.metric_fn else 0
@@ -129,16 +128,11 @@ class SSTLearner(*Handles):
 
     def valid_step(self):
         """Standard valid step"""
-        X, y = self.split_batch()
+        X, y = self.batch
         y_logits = self.model(X) if torch.is_tensor(X) else self.model(*X)
         loss = self.loss_fn(y_logits, y)
         metric = self.metric_fn(y_logits, y) if self.metric_fn else 0
         return loss, metric
-
-    def split_batch(self):
-        X, *y = self.batch
-        y = y[0] if len(y) == 1 else y
-        return X, y
 
     def set_train_mode(self):
         """Method to set mode of model in _train_loop"""
