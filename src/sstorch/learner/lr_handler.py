@@ -7,35 +7,14 @@ import matplotlib.pyplot as plt
 from .callback_handler import Callback
 
 
-class OptimizerHandler:
+class LRHandler:
     """Class for handling Learning Rates"""
 
     def __init__(self):
-        self.optimizer = self.configure_optimizer()
         self.learning_rates = []
         self.scheduler = None
         self.is_batch_lr_scheduler = False
         self.LearningRateScheduler = LearningRateScheduler
-
-    def configure_optimizer(self):
-        """Method to configure optimizer on initialisation
-        
-        
-        """
-        raise Exception(
-            "Need to define configure_optimizer() to setup optimizer for training"
-        )
-
-    def set_optimizer(
-        self, optimizer: torch.optim.Optimizer, defaults: dict[str, float]
-    ):
-        """Method to set optimizer
-
-        Args:
-            optimizer (torch.optim.Optimizer):  optimizer to be set
-            defaults (dict[str, float]):    defaults of optimizer in
-        """
-        self.optimizer = optimizer(params=self.model.parameters(), **defaults)
 
     def set_lr_scheduler(
         self, scheduler: torch.optim.lr_scheduler, is_batch_lr_scheduler: bool = False
@@ -74,16 +53,16 @@ class OptimizerHandler:
         Reference: Leslie N. Smith 'Cyclical Learning Rates for Training Neual Networks
 
         Args:
-          end_lr (float):   upper boundary for the LR Range test
-          start_lr (float): lower boundary for the LR Range test, Defaults to current optimizer LR
-          num_iter (int):   number of interations to move from start_lr to end_lr
-          step_mode (str):  show LR range test linear or log scale, Defaults to 'exp'
-          alpha (float):    alpha term for smoothed loss (smooth_loss = alpha * loss + (1-alpha) * prev_loss)
-          show_graph (bool):    to show LR Range Test result in plot
+            end_lr (float):   upper boundary for the LR Range test
+            start_lr (float): lower boundary for the LR Range test, Defaults to current optimizer LR
+            num_iter (int):   number of interations to move from start_lr to end_lr
+            step_mode (str):  show LR range test linear or log scale, Defaults to 'exp'
+            alpha (float):    alpha term for smoothed loss (smooth_loss = alpha * loss + (1-alpha) * prev_loss)
+            show_graph (bool):    to show LR Range Test result in plot
 
         Return:
-          max_grad_lr (float):  LR with maximum loss gradient (steepest)
-          min_loss_lr (float):  LR with minium loss (minimum)
+            max_grad_lr (float):  LR with maximum loss gradient (steepest)
+            min_loss_lr (float):  LR with minium loss (minimum)
         """
         previous_states = {
             "model": deepcopy(self.model.state_dict()),
@@ -175,13 +154,13 @@ class OptimizerHandler:
         and then from that maximum learning rate to some minimum learning rate
 
         Args:
-          epochs (int): The number of epochs to train for
-          max_lr (float):   Upper learning rate boundaries in the cycle for each parameter group, Default: None
-          min_lr (float):   Lower learning rate boundaries in the cycle for each parameter group, Default: None
+            epochs (int): The number of epochs to train for
+            max_lr (float):   Upper learning rate boundaries in the cycle for each parameter group, Default: None
+            min_lr (float):   Lower learning rate boundaries in the cycle for each parameter group, Default: None
 
-          If max_lr and min_lr is not specified,
-          lr_range_test will be performed
-          with max_lr set to min_loss_lr and min_lr set to max_grad_lr
+            If max_lr and min_lr is not specified,
+            lr_range_test will be performed
+            with max_lr set to min_loss_lr and min_lr set to max_grad_lr
 
         Reference: https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.OneCycleLR.html
         Reference: https://arxiv.org/abs/1708.07120

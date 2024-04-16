@@ -3,7 +3,7 @@
 Below are the list of handlers:
 
 `DeviceHandler`     -   Device management, uses `torch.device('cuda')` if gpu available
-`OptimizerHandler`  -   Set Optimizer and Learning rate scheduler
+`LRHandler`         -   Method includes set Learning Rate Scheduler, LR Finder and FitOneCycle
 `TBHandler`         -   Set tensorboard for training monitor
 `TorchInfoHandler`  -   Method to utilise torchinfo to show model summary
 `ResultHandler`     -   Record training results within SSTLearner
@@ -19,7 +19,7 @@ from tqdm.auto import tqdm
 import torch
 from .device_handler import DeviceHandler
 from .callback_handler import CBHandler
-from .optimizer_handler import OptimizerHandler
+from .lr_handler import LRHandler
 from .tensorboard_handler import TBHandler
 from .torchinfo_handler import TorchInfoHandler
 from .result_handler import ResultHandler
@@ -29,7 +29,7 @@ from .checkpoint_handler import CheckPointHandler
 
 Handles = [
     DeviceHandler,
-    OptimizerHandler,
+    LRHandler,
     TBHandler,
     TorchInfoHandler,
     ResultHandler,
@@ -50,6 +50,7 @@ class SSTLearner(*Handles):
         self,
         model: torch.nn.Module,
         loss_fn: Callable,
+        optimizer: torch.optim.Optimizer,
         metric_fn: Callable = None,
         train_dataloader: torch.utils.data.DataLoader = None,
         valid_dataloader: torch.utils.data.DataLoader = None,
@@ -65,6 +66,7 @@ class SSTLearner(*Handles):
         """
         self.model = model
         self.loss_fn = loss_fn
+        self.optimizer = optimizer
         self.metric_fn = metric_fn
         self.train_dataloader = train_dataloader
         self.valid_dataloader = valid_dataloader
