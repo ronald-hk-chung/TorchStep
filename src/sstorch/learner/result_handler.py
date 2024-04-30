@@ -67,6 +67,7 @@ class PrintResults(Callback):
                         else np.around(self.valid_metric, 3)
                     )
                     print(f"valid_metric: {valid_metric}")
+            print("-" * 100)
 
     def on_loss_end(self):
         if isinstance(self.metric, dict):
