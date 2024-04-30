@@ -77,12 +77,14 @@ class SSTLearner(*Handles):
         for handle in Handles:
             handle.__init__(self)
 
-    def train(self, epochs: int):
+    def train(self, epochs: int, verbose: int):
         """Method for SSTLearner to run train and valid loops
 
         Args:
             epochs (int): num of epochs to run
+            verbose (int): results printing control (0 - no result, 1 - epoch end only, 2 - full results)
         """
+        self.verbose = verbose
         for epoch in tqdm(range(epochs), desc="Epochs", position=0):
             self.total_epochs += 1
             self.callback_handler.on_epoch_begin(self)

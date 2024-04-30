@@ -7,6 +7,7 @@ class ResultHandler:
     """Class for handling Printing and Saving Results"""
 
     def __init__(self):
+        self.verbose = 2
         self.train_loss = None
         self.train_metric = None
         self.valid_loss = None
@@ -41,31 +42,32 @@ class PrintResults(Callback):
         self.valid_loss, self.valid_metric = 0, 0
 
     def on_epoch_end(self):
-        print(
-            f"\rEpoch: {self.total_epochs} "
-            + f"| LR: {np.array(self.learning_rates).mean():.1E} "
-            + f"| train_loss: {np.around(self.train_loss, 3)} "
-            + (
-                f"| valid_loss: {np.around(self.valid_loss, 3)} "
-                if self.valid_dataloader
-                else ""
-            )
-        )
-        if self.metric_fn:
-            train_metric = (
-                dict(zip(self.metric_keys, np.around(self.train_metric, 3)))
-                if self.metric_keys
-                else np.around(self.train_metric, 3)
-            )
-            print(f"train_metric: {train_metric}")
-            if self.valid_dataloader:
-                valid_metric = (
-                    dict(zip(self.metric_keys, np.around(self.valid_metric, 3)))
-                    if self.metric_keys
-                    else np.around(self.valid_metric, 3)
+        if self.verbose > 0:
+            print(
+                f"\rEpoch: {self.total_epochs} "
+                + f"| LR: {np.array(self.learning_rates).mean():.1E} "
+                + f"| train_loss: {np.around(self.train_loss, 3)} "
+                + (
+                    f"| valid_loss: {np.around(self.valid_loss, 3)} "
+                    if self.valid_dataloader
+                    else ""
                 )
-                print(f"valid_metric: {valid_metric}")
-        print("-" * 100)
+            )
+            if self.metric_fn:
+                train_metric = (
+                    dict(zip(self.metric_keys, np.around(self.train_metric, 3)))
+                    if self.metric_keys
+                    else np.around(self.train_metric, 3)
+                )
+                print(f"train_metric: {train_metric}")
+                if self.valid_dataloader:
+                    valid_metric = (
+                        dict(zip(self.metric_keys, np.around(self.valid_metric, 3)))
+                        if self.metric_keys
+                        else np.around(self.valid_metric, 3)
+                    )
+                    print(f"valid_metric: {valid_metric}")
+            print("-" * 100)
 
     def on_loss_end(self):
         if isinstance(self.metric, dict):
@@ -81,10 +83,11 @@ class PrintResults(Callback):
         if self.metric_keys:
             metric = dict(zip(self.metric_keys, metric))
             avg_metric = dict(zip(self.metric_keys, avg_metric))
-        print(
-            f"\rTrain Step {self.batch_num+1}/{len(self.train_dataloader)} | Loss(Cur/Avg): {loss} / {avg_loss} | Metric(Cur/Avg): {metric} / {avg_metric}",
-            end="",
-        )
+        if self.verbose > 1:
+            print(
+                f"\rTrain Step {self.batch_num+1}/{len(self.train_dataloader)} | Loss(Cur/Avg): {loss} / {avg_loss} | Metric(Cur/Avg): {metric} / {avg_metric}",
+                end="",
+            )
 
     def on_valid_loss_end(self):
         if isinstance(self.metric, dict):
@@ -100,10 +103,11 @@ class PrintResults(Callback):
         if self.metric_keys:
             metric = dict(zip(self.metric_keys, metric))
             avg_metric = dict(zip(self.metric_keys, avg_metric))
-        print(
-            f"\rValid Step {self.batch_num+1}/{len(self.valid_dataloader)} | Loss(Cur/Avg): {loss} / {avg_loss} | Metric(Cur/Avg): {metric} / {avg_metric}",
-            end="",
-        )
+        if self.verbose > 1:
+            print(
+                f"\rValid Step {self.batch_num+1}/{len(self.valid_dataloader)} | Loss(Cur/Avg): {loss} / {avg_loss} | Metric(Cur/Avg): {metric} / {avg_metric}",
+                end="",
+            )
 
     def on_train_end(self):
         self.train_loss /= len(self.train_dataloader)
