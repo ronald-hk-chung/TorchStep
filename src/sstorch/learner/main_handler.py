@@ -77,7 +77,7 @@ class SSTLearner(*Handles):
         for handle in Handles:
             handle.__init__(self)
 
-    def train(self, epochs: int, verbose: int):
+    def train(self, epochs: int, verbose: int=2):
         """Method for SSTLearner to run train and valid loops
 
         Args:
