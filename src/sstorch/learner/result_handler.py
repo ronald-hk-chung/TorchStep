@@ -121,7 +121,7 @@ class PrintResults(Callback):
 
 class SaveResults(Callback):
     def on_epoch_end(self):
-        self.results['lr'].append(np.array(self.learning_rate).mean())
+        self.results['lr'].append(np.array(self.learning_rates).mean())
         self.results["train_loss"].append(self.train_loss)
         self.results["train_metric"].append(self.train_metric)
         self.results["valid_loss"].append(self.valid_loss)
