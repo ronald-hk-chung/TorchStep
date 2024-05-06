@@ -17,6 +17,7 @@ class ResultHandler:
         self.metric_keys = None
         self.batch_num = None
         self.results = {
+            'lr': [],
             "train_loss": [],
             "train_metric": [],
             "valid_loss": [],
@@ -120,6 +121,7 @@ class PrintResults(Callback):
 
 class SaveResults(Callback):
     def on_epoch_end(self):
+        self.results['lr'].append(np.array(self.learning_rate).mean())
         self.results["train_loss"].append(self.train_loss)
         self.results["train_metric"].append(self.train_metric)
         self.results["valid_loss"].append(self.valid_loss)
