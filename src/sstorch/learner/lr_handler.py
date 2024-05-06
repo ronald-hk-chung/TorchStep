@@ -146,7 +146,7 @@ class LRHandler:
 
         return lr_fn
 
-    def fit_one_cycle(self, epochs, max_lr=None, min_lr=None):
+    def fit_one_cycle(self, epochs, max_lr=None, min_lr=None, verbose=2):
         """Method to perform fit one cycle polcy
 
         Sets the learning rate of each parameter group according to the 1cycle learning rate policy.
@@ -181,7 +181,7 @@ class LRHandler:
             total_steps=int(len(self.train_dataloader) * epochs * 1.05),
         )
         self.set_lr_scheduler(scheduler=scheduler, is_batch_lr_scheduler=True)
-        self.train(epochs=epochs)
+        self.train(epochs=epochs, verbose=verbose)
         self.set_lr_scheduler(scheduler=None)
         self.optimizer = pervious_optimizer
 
