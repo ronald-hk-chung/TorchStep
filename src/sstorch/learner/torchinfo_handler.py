@@ -30,7 +30,6 @@ class TorchInfoHandler:
                 args or a dict of kwargs (if your forward() function takes in a dict
                 as its only argument, wrap it in a list).
                 Default: None
-
         """
         if input_data is None:
             batch = next(iter(self.train_dataloader))
